@@ -361,6 +361,7 @@ body.dark-mode .game-container { border-color: #555; box-shadow: 0 0 15px rgba(1
 #pcScreen {
     background-color: var(--bg-options-menu); /* Hergebruik bestaande var */
     padding: 3vmin;
+	padding-bottom: calc(3vmin + env(safe-area-inset-bottom, 20px));
     align-items: center;
     justify-content: flex-start; /* Start bovenaan */
     gap: 2vmin;
