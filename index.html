@@ -64,6 +64,7 @@
                      <button class="submenu-tab" id="tabInventory">INVENTORY</button>
                      <button class="submenu-tab" id="tabTeam">TEAM</button>
                      <button class="submenu-tab" id="tabMyCards">MY CARDS</button> 
+					 <button class="submenu-tab" id="tabMyPC">MY PC</button> 
                  </div>
              </div>
         </div>
@@ -168,6 +169,30 @@
                  <p class="no-collected-items" id="noCollectedBadgesMsg" style="display:none;">No badges earned yet.</p>
             </div>
             <button id="btnBackToMainFromMyCards" class="my-cards-back-button">BACK TO MAIN MENU</button>
+        </div>
+		<div id="pcScreen" class="screen" style="display: none;">
+            <h2>MY PC</h2>
+            <div class="pc-layout-container">
+                <div class="pc-column">
+                    <h3>YOUR TEAM (Max 6)</h3>
+                    <div id="pcTeamGrid" class="team-grid pc-grid-display">
+                        <!-- Team Pokémon worden hier geladen -->
+                        <p class="no-pokemon">Team is empty.</p>
+                    </div>
+                </div>
+                <div class="pc-column">
+                    <h3>POKÉMON IN PC</h3>
+                    <div id="pcBoxGrid" class="inventory-grid pc-grid-display">
+                        <!-- PC Pokémon worden hier geladen -->
+                        <p class="no-items">PC Box is empty.</p>
+                    </div>
+                </div>
+            </div>
+            <p id="pcInstructionText" class="pc-instructions">Select a Pokémon from your Team and one from your PC to swap them. Or, select a Pokémon to move to an available slot.</p>
+            <div class="pc-buttons-container">
+                <button id="btnConfirmSwapPC" class="pc-action-button" disabled>SWAP / MOVE</button>
+                <button id="btnBackToMainFromPC" class="pc-action-button back">BACK TO MAIN MENU</button>
+            </div>
         </div>
 
 
