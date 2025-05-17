@@ -104,7 +104,7 @@ body.dark-mode .game-container {
     flex-direction: column; 
     color: var(--text-color-default); 
     box-sizing: border-box; 
-    overflow: hidden; /* Standaard geen scroll voor schermen */
+    overflow: hidden; /* Standaard geen scroll voor de meeste schermen */
 }
 
 /* --- Intro Screen --- */
@@ -229,25 +229,24 @@ body.dark-mode .game-container {
 .submenu-tab:hover { background-color: var(--button-subtle-hover); } 
 .submenu-tab:active { transform: translateY(1px); border-bottom-width: 2px; box-shadow: none; }
 
-/* --- Generic Menu Screens (Options, Play, Market, Inventory, Team, etc.) --- */
-#optionsMenuScreen, #playMenuScreen, #marketScreen, #inventoryScreen, #teamScreen, 
+/* --- Generic Menu Screens (Options, Play, etc. BEHALVE Market & PC) --- */
+#optionsMenuScreen, #playMenuScreen, #inventoryScreen, #teamScreen, 
 #teamSelectScreen, #gymLeaderSelectScreen, #gymLeaderDetailScreen, #myCardsScreen, 
 #starterSelectScreen {
     background-color: var(--bg-options-menu); 
-    padding: 3vmin; /* Consistent padding */
+    padding: 3vmin;
     align-items: center; 
-    /* justify-content: center; Kan per scherm verschillen, default is flex-start door .screen */
     gap: 2.5vmin; 
-    overflow-y: auto; /* Belangrijk: deze schermen mogen intern scrollen */
+    overflow-y: auto; 
 }
-#optionsMenuScreen h2, #playMenuScreen h2, #marketScreen h2, #inventoryScreen h2, #teamScreen h2, 
+#optionsMenuScreen h2, #playMenuScreen h2, #inventoryScreen h2, #teamScreen h2, 
 #teamSelectScreen h2, #gymLeaderSelectScreen h2, #gymLeaderDetailScreen h2, #myCardsScreen h2, 
-#starterSelectScreen h2, #pcScreen h2 { /* PC h2 ook hier voor consistentie */
+#starterSelectScreen h2 { 
     font-size: clamp(1.6em, 5vmin, 2.2em); margin-bottom: 2vmin; text-align: center; flex-shrink: 0; 
 }
 #optionsMenuScreen .options-button, #playMenuScreen .play-mode-button, 
-#marketScreen .market-back-button, #inventoryScreen .inventory-back-button, 
-#teamScreen .team-back-button, #teamSelectScreen .team-select-button, 
+#inventoryScreen .inventory-back-button, #teamScreen .team-back-button, 
+#teamSelectScreen .team-select-button, 
 #gymLeaderSelectScreen .gym-leader-button, #gymLeaderDetailScreen .gym-detail-button, 
 #myCardsScreen .my-cards-back-button { 
     font-family: 'Pokemon Pixel', sans-serif; font-size: clamp(1em, 3.5vmin, 1.4em); 
@@ -260,43 +259,177 @@ body.dark-mode .game-container {
 #optionsMenuScreen #btnResetGameOpt, #playMenuScreen #btnQuickBattlePlay { background-color: #e74c3c; border-color: #c0392b;} 
 #optionsMenuScreen #btnDarkModeOpt { background-color: #34495e; border-color: #2c3e50;} 
 #optionsMenuScreen #btnBackToMainOpts, #playMenuScreen #btnBackToMainFromPlay, 
-#marketScreen .market-back-button, #inventoryScreen .inventory-back-button, 
-#teamScreen .team-back-button, #teamSelectScreen .team-select-button, 
+#inventoryScreen .inventory-back-button, #teamScreen .team-back-button, 
+#teamSelectScreen .team-select-button, 
 #gymLeaderSelectScreen .gym-leader-button.back, #gymLeaderDetailScreen .gym-detail-button.back, 
-#myCardsScreen .my-cards-back-button, #pcScreen #btnBackToMainFromPC { /* PC back button ook hier */
+#myCardsScreen .my-cards-back-button { 
     background-color: #3498db; border-color: #2980b9;
 } 
 #playMenuScreen #btnGymBattlePlay { background-color: #f39c12; border-color: #e67e22; } 
 #playMenuScreen #btnWildModePlay { background-color: #2ecc71; border-color: #27ae60; }
 #playMenuScreen #btnEliteBattlesPlay { background-color: #bf00ff; border-color: #a000d4; }
 #optionsMenuScreen .options-button:active, #playMenuScreen .play-mode-button:active, 
-#marketScreen .market-back-button:active, #inventoryScreen .inventory-back-button:active, 
-#teamScreen .team-back-button:active, #teamSelectScreen .team-select-button:active, 
+#inventoryScreen .inventory-back-button:active, #teamScreen .team-back-button:active, 
+#teamSelectScreen .team-select-button:active, 
 #gymLeaderSelectScreen .gym-leader-button:active, #gymLeaderDetailScreen .gym-detail-button:active, 
-#myCardsScreen .my-cards-back-button:active, #pcScreen .pc-action-button:active { 
+#myCardsScreen .my-cards-back-button:active { 
     transform: translateY(1px); border-bottom-width: 2px; box-shadow: none; 
 }
 
-/* --- PC Screen Styles (Focus op scrollen) --- */
-#pcScreen {
-    /* Eigenschappen geërfd van .screen: width, height, display:flex, flex-direction:column, box-sizing */
-    overflow-y: auto; /* <<-- STA SCROLLEN TOE VOOR DIT SPECIFIEKE SCHERM */
+/* --- Market Screen Styles --- */
+#marketScreen {
     background-color: var(--bg-options-menu); 
-    padding: 3vmin; 
-    /* padding-bottom toegevoegd om ruimte te maken voor mobiele navigatiebalken BINNEN het scrollgebied */
-    padding-bottom: calc(3vmin + env(safe-area-inset-bottom, 40px)); /* 40px als fallback */
+    padding: 3vmin 4vmin; 
     align-items: center; 
+    justify-content: flex-start; 
+    gap: 2.5vmin; 
+    overflow-y: auto; 
+}
+#marketScreen h2 {
+    font-size: clamp(1.6em, 6vmin, 2.5em); 
+    margin-bottom: 2vmin; 
+    text-align: center; 
+    flex-shrink: 0; 
+}
+#marketCoinDisplay { 
+    font-size: clamp(1em, 3.5vmin, 1.3em); 
+    margin-bottom: 2.5vmin; 
+    padding: 1vmin 2vmin; 
+    background-color: rgba(0,0,0,0.3); 
+    border-radius: 5px; 
+    flex-shrink: 0;
+}
+.market-items-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(clamp(150px, 30vw, 200px), 1fr)); 
+    gap: 2.5vmin; 
+    width: 100%; 
+    max-width: 750px; 
+    margin-bottom: 2vmin; 
+}
+.market-item { 
+    background-color: var(--button-subtle-bg); 
+    border: 2px solid var(--button-subtle-border); 
+    border-radius: 10px; 
+    padding: 2vmin; 
+    text-align: center; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: space-between; 
+    gap: 1vmin; 
+    box-shadow: 0 2px 4px var(--button-subtle-shadow);
+    min-height: clamp(180px, 25vh, 220px); 
+}
+.market-item img.item-icon { 
+    width: clamp(50px, 12vmin, 70px); 
+    height: clamp(50px, 12vmin, 70px); 
+    background-color: rgba(255,255,255,0.1); 
+    border-radius: 8px; 
+    padding: 0.8vmin; 
+    object-fit: contain; 
+    margin-bottom: 1vmin; 
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    flex-shrink: 0;
+}
+.market-item img.item-icon.pokeball-icon { background-image: var(--item-icon-pokeball); }
+.market-item img.item-icon.greatball-icon { background-image: var(--item-icon-greatball); }
+.market-item img.item-icon.evolutionstone-icon { background-image: var(--item-icon-evolutionstone); }
+.market-item .item-name { 
+    font-size: clamp(0.9em, 3vmin, 1.1em); 
+    font-weight: bold; 
+    margin-bottom: 0.5vmin; 
+}
+.market-item .item-price { 
+    font-size: clamp(0.8em, 2.8vmin, 1em); 
+    margin-bottom: 1vmin; 
+}
+.market-item .buy-button { 
+    background-color: #2ecc71; 
+    border-color: #27ae60; 
+    color: #fff; 
+    font-size: clamp(0.85em, 3vmin, 1.05em); 
+    padding: 1.2vmin 1.8vmin; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    transition: background-color 0.2s, transform 0.1s; 
+    width: 85%; 
+    margin-top: auto; 
+    border-style: solid; 
+    border-width: 2px 2px 3px 2px; 
+    text-shadow: 1px 1px #1a6a3a; 
+}
+.market-item .buy-button:hover:not(:disabled) { 
+    background-color: #25a25a; 
+    transform: translateY(-1px); 
+}
+.market-item .buy-button:active:not(:disabled) {
+    transform: translateY(1px);
+    border-bottom-width: 2px;
+}
+.market-item .buy-button:disabled { 
+    background-color: #7f8c8d; 
+    border-color: #6c7a7b; 
+    cursor: not-allowed; 
+    opacity: 0.7; 
+}
+#marketScreen .market-back-button {
+    margin-top: 2vmin; 
+    background-color: #3498db; /* Zorg dat het de juiste back button kleur heeft */
+    border-color: #2980b9;
+}
+#marketScreen .market-back-button:active {
+    transform: translateY(1px); border-bottom-width: 2px; box-shadow: none; 
+}
+
+
+/* --- PC Screen Styles (BELANGRIJKE AANPASSINGEN) --- */
+#pcScreen {
+    /* Eigenschappen geërfd van .screen: width, height, box-sizing, display:flex, flex-direction:column, color */
+    background-color: var(--bg-options-menu); 
+    padding: 2vmin; /* Padding voor het hele scherm, boven en zijkanten */
+    padding-bottom: 0; /* Geen padding-bottom hier, wordt door wrapper afgehandeld */
     gap: 1.5vmin; 
-    justify-content: flex-start; /* Zorg dat inhoud bovenaan begint */
+    justify-content: flex-start; 
+    overflow: hidden; /* #pcScreen zelf scrollt NIET */
+}
+
+#pcScreen h2 { 
+    font-size: clamp(1.6em, 5vmin, 2.2em); 
+    margin-bottom: 1.5vmin; 
+    text-align: center; 
+    flex-shrink: 0; 
+}
+
+.pc-scroll-wrapper {
+    flex-grow: 1; /* Neemt alle resterende verticale ruimte */
+    width: 100%;
+    overflow-y: auto; /* DEZE DIV SCROLLT NU */
+    display: flex;    
+    flex-direction: column;
+    align-items: center; 
+    /* padding: 0 1vmin;  Padding kan beter op .pc-content-area */
+    padding-bottom: env(safe-area-inset-bottom, 60px); /* Ruimte voor mobiele nav balk, pas 60px aan indien nodig */
+    box-sizing: border-box;
+}
+
+.pc-content-area {
+    width: 100%;
+    max-width: 900px; 
+    display: flex;
+    flex-direction: column;
+    gap: 1.5vmin;
+    padding: 0 1vmin; /* Horizontale padding voor de content */
 }
 
 .pc-layout-container {
     width: 100%;
-    max-width: 900px; 
     display: flex;
     flex-direction: column; 
     gap: 2vmin; 
-    flex-shrink: 0; /* Voorkom dat deze container krimpt als #pcScreen scrollt */
+    flex-shrink: 0; 
 }
 @media (min-width: 768px) {
     .pc-layout-container {
@@ -330,11 +463,10 @@ body.dark-mode .game-container {
     padding: 1vmin;
     background-color: rgba(0,0,0,0.2);
     border-radius: 8px;
-    min-height: 150px; /* Minimale hoogte zodat de box zichtbaar is */
-    /* GEEN max-height of overflow-y hier, laat #pcScreen scrollen */
+    min-height: 150px; 
 }
 .pc-grid-display .team-pokemon-card,
-.pc-grid-display .inventory-item { /* Als je .inventory-item class gebruikt in PC box */
+.pc-grid-display .inventory-item {
     cursor: pointer;
     transition: background-color 0.2s, border-color 0.2s;
 }
@@ -372,12 +504,13 @@ body.dark-mode .game-container {
     display: flex;
     flex-direction: column; 
     gap: 1.5vmin;
-    margin-top: auto; /* Duwt naar beneden als er ruimte is */
     padding-top: 1.5vmin; 
     flex-shrink: 0;
     width: 80%; 
     max-width: 350px; 
     align-items: center; 
+    margin-left: auto; /* Centreer de knoppencontainer zelf */
+    margin-right: auto;
 }
 @media (min-width: 768px) { 
     .pc-buttons-container {
@@ -400,18 +533,18 @@ body.dark-mode .game-container {
     border-width: 2px 3px 4px 2px;
     width: 100%; 
 }
-/* :active state is al gedefinieerd bij de generieke menu knoppen */
+.pc-action-button:active { transform: translateY(1px); border-bottom-width: 2px; box-shadow: none; }
 .pc-action-button:disabled { background-color: #7f8c8d; border-color: #6c7a7b; cursor: not-allowed; opacity: 0.7; }
 #btnConfirmSwapPC { background-color: #2ecc71; border-color: #27ae60; }
-/* #btnBackToMainFromPC kleur is al gedefinieerd bij generieke back knoppen */
+#btnBackToMainFromPC { background-color: #3498db; border-color: #2980b9;} 
 
-/* --- Overige Schermen (Market, Inventory, Team etc.) --- */
-/* De .inventory-grid en .team-grid (voor de *aparte* Team/Inventory schermen) hebben hun eigen overflow-y: auto */
+
+/* --- Inventory & Team Schermen (niet PC) --- */
 .inventory-grid, .team-grid { 
     display: flex; flex-direction: column; gap: 2vmin; width: 100%; max-width: 500px; 
     padding: 1vmin; background-color: rgba(0,0,0,0.2); border-radius: 8px; 
     min-height: 100px; max-height: 60vh; 
-    overflow-y: auto; /* Deze specifieke grids mogen intern scrollen */
+    overflow-y: auto; 
 }
 .inventory-item { display: flex; align-items: center; gap: 2vmin; background-color: var(--button-subtle-bg); padding: 1.5vmin; border-radius: 6px; border: 1px solid var(--button-subtle-border); }
 .team-pokemon-card { display: flex; align-items: center; gap: 1.5vmin; background-color: var(--button-subtle-bg); padding: 1.5vmin; border-radius: 6px; border: 1px solid var(--button-subtle-border); }
@@ -424,38 +557,76 @@ body.dark-mode .game-container {
 .inventory-item .item-name, .team-pokemon-card .pokemon-name { font-weight: bold; }
 .inventory-grid .no-items, .team-grid .no-pokemon { text-align: center; padding: 2vmin; font-style: italic; opacity: 0.7; display:none; }
 
-/* --- Battle Screen (samengevat, was al lang) --- */
+/* --- Battle Screen --- */
 #battleScreen { position: relative; background-image: url('https://pokemonrevolution.net/forum/uploads/monthly_2021_03/DVMT-6OXcAE2rZY.jpg.afab972f972bd7fbd4253bc7aa1cf27f.jpg') !important; background-size: cover; background-position: center bottom; }
 .battle-arena { flex-grow: 1; position: relative; min-height: 55%; } 
 #attackAnimationLayer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 50; }
-/* ... (rest van battle stijlen, die waren al uitgebreid en waarschijnlijk oké) ... */
-/* Zorg ervoor dat .battle-textbox overflow-y: auto; heeft als de berichten lang worden */
-.battle-textbox { flex-grow: 1; height: 100%; /*...*/ overflow-y: auto; }
-
-
-/* --- Switch/Team Select Overlays (samengevat) --- */
-#switchPokemonScreen, #teamSelectScreen { 
-    background-color: rgba(0,0,0,0.9); position: absolute; inset: 0; z-index: 90; 
-    align-items: center; justify-content: center; padding: 20px; display: none; 
-    flex-direction: column; 
-    overflow-y: auto; /* Deze overlays mogen scrollen als de lijst lang is */
-}
-/* ... (rest van switch/team select stijlen) ... */
-
-/* --- Gym Leader & My Cards Screens (samengevat) --- */
-/* Zorg ervoor dat #myCardsScreen etc. overflow-y: auto; hebben als de inhoud lang is (is al zo via de generieke menu screen stijl) */
-
-/* --- Market Item Icons (herhaling voor duidelijkheid) --- */
-.market-item img.item-icon.pokeball-icon { background-image: var(--item-icon-pokeball); }
-.market-item img.item-icon.greatball-icon { background-image: var(--item-icon-greatball); }
-.market-item img.item-icon.evolutionstone-icon { background-image: var(--item-icon-evolutionstone); }
-
-/* --- Battle Item Icons (herhaling voor duidelijkheid) --- */
+.attack-animation { position: absolute; }
+.pokemon-sprite { position: absolute; image-rendering: pixelated; width: clamp(110px, 33vmin, 220px); height: clamp(110px, 33vmin, 220px); transition: transform 0.3s ease-in-out; transform-origin: bottom center; z-index: 10; }
+.opponent-sprite { top: 14%; right: 8%; transform: scale(1.4); } 
+.player-sprite { bottom: 5vmin; left: 8%; transform: scale(2.1); }
+.opponent-sprite img, .player-sprite img { width: 100%; height: 100%; object-fit: contain; }
+.battle-info-box { position: absolute; background-color: var(--battle-info-box-bg); border: 3px solid var(--battle-info-box-border); border-radius: 10px; padding: clamp(8px, 1.5vmin, 12px) clamp(10px, 2vmin, 15px); width: clamp(170px, 42%, 280px); box-shadow: 0 3px 8px rgba(0,0,0,0.5); color: var(--battle-text-color); font-size: clamp(0.75em, 2.2vmin, 1em); z-index: 60; display: flex; flex-direction: column; }
+.opponent-info { top: 3%; left: 2%; } 
+.player-info { bottom: calc(28% + 2vmin); right: 2%; } 
+.info-line { display: flex; justify-content: space-between; margin-bottom: 0.6vmin; align-items: center;} 
+.info-line .name { font-weight: bold; font-size: 1.15em; } 
+.info-line .status-tag { font-size: 0.85em; padding: 0.2em 0.5em; border-radius: 4px; color: white; margin-left: 0.5em; font-weight: bold; text-shadow: 1px 1px 1px rgba(0,0,0,0.5); }
+.status-tag.BRN { background-color: var(--status-brn-color); } 
+.status-tag.PSN { background-color: var(--status-psn-color); }
+.status-tag.PAR { background-color: var(--status-par-color); color: #4a3b00; } 
+.status-tag.SLP { background-color: var(--status-slp-color); }
+.status-tag.FRZ { background-color: var(--status-frz-color); color: #005566; } 
+.hp-bar-container { width: 100%; height: clamp(12px, 2vmin, 18px); background-color: #555; border: 1px solid #333; border-radius: 6px; overflow: hidden; margin: 0.6vmin 0; display: flex; align-items: center; }
+.hp-bar-container span { font-size: clamp(0.7em, 1.8vmin, 0.9em); font-weight: bold; color: white; background-color: rgba(0,0,0,0.6); padding: 0.1vmin 0.6vmin; margin-left: 0.4vmin; border-radius: 4px; }
+.hp-bar-fill { height: 100%; background-color: var(--hp-high-color); border-radius: 4px 0 0 4px; transition: width 0.5s ease-in-out, background-color 0.5s ease-in-out; }
+.player-info .hp-numbers, .opponent-info .hp-numbers { text-align: right; font-size: clamp(0.85em, 2.2vmin, 1.05em); margin-top: 0.6vmin; color: var(--battle-text-color); opacity: 0.9; font-weight: bold; }
+.team-status { display: flex; gap: 1.2vmin; margin-top: 1.2vmin; justify-content: flex-start; padding-left: 3px; } 
+.status-ball { width: clamp(12px, 2.8vmin, 18px); height: clamp(12px, 2.8vmin, 18px); display: inline-block; background-image: var(--pokeball-svg-battle); background-size: contain; background-repeat: no-repeat; background-position: center; transition: filter 0.3s, opacity 0.3s; }
+.status-ball.fainted { filter: grayscale(100%) contrast(0.5); opacity: 0.5; } 
+.battle-ui-bottom { flex-shrink: 0; height: 28%; display: flex; border-top: 4px solid var(--battle-ui-border); background-color: var(--battle-ui-bg); border-radius: 12px 12px 0 0; z-index: 70; box-shadow: 0 -3px 10px rgba(0,0,0,0.4); }
+.battle-textbox { flex-grow: 1; height: 100%; border: none; padding: clamp(10px, 2vmin, 16px); box-sizing: border-box; color: var(--battle-text-color); font-size: clamp(0.9em, 2.5vmin, 1.2em); line-height: 1.35; position: relative; overflow-y: auto; }
+#battleMessage { margin: 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.7); }
+.battle-menu { background-color: transparent; padding: clamp(0.8vmin, 1.2vmin, 1.8vmin); box-sizing: border-box; }
+.battle-action-menu { position: relative; flex-shrink: 0; width: clamp(130px, 30%, 180px); height: 100%; display: grid; grid-template-columns: 1fr; gap: clamp(0.6vmin, 1vmin, 1.2vmin); align-content: center; padding: clamp(1vmin, 1.5vmin, 2vmin); border-left: 3px solid var(--battle-ui-border); }
+.battle-action-menu.extended { grid-template-rows: repeat(4, 1fr); align-content: stretch; }
+.battle-move-menu, .battle-item-menu { width: 100%; height: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(1vmin, 1.3vmin, 1.8vmin); padding: clamp(1vmin, 1.5vmin, 2vmin); align-items: stretch; align-content: center; }
+.battle-menu button { font-family: 'Pokemon Pixel', sans-serif; font-size: clamp(0.8em, 2.3vmin, 1em); color: var(--battle-text-color); background-color: var(--battle-button-bg); border: 2px solid var(--battle-button-border); border-radius: 8px; padding: clamp(0.6vmin, 1.2vmin, 1.5vmin) clamp(0.3vmin, 0.5vmin, 0.7vmin); cursor: pointer; text-align: center; transition: background-color 0.2s, border-color 0.2s, transform 0.1s; box-shadow: 0 2px 3px rgba(0,0,0,0.3); overflow: hidden; text-overflow: ellipsis;}
+.battle-menu button:hover:not(:disabled) { background-color: var(--battle-button-hover-bg); border-color: lighten(var(--battle-button-border), 10%); transform: translateY(-1px); }
+.battle-menu button:disabled { opacity: 0.6; cursor: not-allowed; background-color: desaturate(var(--battle-button-bg), 30%); }
+.battle-move-menu button, .battle-item-menu button { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.3; min-height: clamp(38px, 8.5vmin, 58px); }
+.move-name, .item-name-battle { display: block; margin-bottom: 0.4vmin; word-break: break-word; font-size: clamp(0.75em, 2.1vmin, 0.95em); }
+.move-pp, .item-count-battle { font-size: clamp(0.65em, 1.7vmin, 0.8em); color: var(--battle-text-color); opacity: 0.85; }
+.item-icon-battle { width: clamp(16px, 3vmin, 20px); height: clamp(16px, 3vmin, 20px); margin-right: 5px; vertical-align: middle; background-size: contain; background-repeat: no-repeat; background-position: center; display: inline-block; }
 .item-icon-battle.pokeball { background-image: var(--item-icon-pokeball); }
 .item-icon-battle.greatball { background-image: var(--item-icon-greatball); }
 .item-icon-battle.evolutionstone { background-image: var(--item-icon-evolutionstone); }
 
-/* --- Animations (herhaling voor duidelijkheid) --- */
+/* --- Switch/Team Select Overlays --- */
+#switchPokemonScreen, #teamSelectScreen { 
+    background-color: rgba(0,0,0,0.9); position: absolute; inset: 0; z-index: 90; 
+    align-items: center; justify-content: center; padding: 20px; display: none; 
+    flex-direction: column; 
+    overflow-y: auto; 
+}
+#switchPokemonScreen h2, #teamSelectScreen h2 { margin-bottom: 25px; font-size: clamp(1.4em, 4.5vmin, 1.8em); flex-shrink:0; }
+.switch-grid, #teamSelectGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(clamp(180px, 40vw, 240px), 1fr)); gap: 20px; width: 95%; max-width: 700px; overflow-y: auto; max-height: 65vh; padding: 10px; }
+.switch-option, .team-select-option { background-color: #3a3a3a; color: #f0f0f0; border: 3px solid #555; border-radius: 10px; padding: 12px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: background-color 0.2s, border-color 0.2s, transform 0.1s; box-shadow: 0 2px 4px rgba(0,0,0,0.4); }
+.switch-option.fainted, .team-select-option.fainted { background-color: #2a2a2a; border-color: #444; cursor: not-allowed; opacity: 0.5; } 
+.switch-option.active, .team-select-option.active { background-color: #505050; cursor: default; border-color: #777; }
+.switch-option:not(.fainted):not(.active):hover, .team-select-option:not(.fainted):not(.active):hover { background-color: #484848; border-color: #888; transform: translateY(-2px); }
+.team-select-option.selected { background-color: #28a745; border-color: #1e7e34;} 
+.switch-option img, .team-select-option img { width: clamp(40px, 10vmin, 50px); height: clamp(40px, 10vmin, 50px); object-fit: contain; background-color: #555; border-radius: 6px; border: 1px solid #777; flex-shrink: 0; }
+.switch-info, .team-select-info { font-size: clamp(0.75em, 2.2vmin, 0.9em); flex-grow: 1; } 
+.switch-info .name, .team-select-info .name { font-size: 1.1em; margin-bottom: 5px; display: block; }
+.switch-info .hp-bar-container, .team-select-info .hp-bar-container { height: clamp(8px, 1.5vmin, 10px); margin-bottom: 3px; } 
+.switch-info .hp-numbers, .team-select-info .hp-numbers { font-size: 0.9em; text-align: left;}
+#switchCancelButton, #teamSelectConfirmButton { margin-top: 25px; font-family: 'Pokemon Pixel', sans-serif; font-size: clamp(1em, 3.8vmin, 1.3em); padding: 12px 25px; border: 2px solid #c0392b; background-color: #e74c3c; color: #FFF; cursor: pointer; border-radius: 8px; transition: background-color 0.2s, border-color 0.2s, transform 0.1s; }
+#switchCancelButton:hover, #teamSelectConfirmButton:hover:not(:disabled) { background-color: #c0392b; border-color: #a03020; transform: translateY(-1px); }
+#teamSelectConfirmButton { background-color: #28a745; border-color: #1e7e34; }
+#teamSelectConfirmButton:disabled { background-color: #7f8c8d; border-color: #6c7a7b; cursor: not-allowed; opacity: 0.7; }
+
+/* --- Animations --- */
 @keyframes shake { 0%, 100% { transform: translateX(0) scale(var(--sprite-scale, 1)); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-5px) scale(var(--sprite-scale, 1)); } 20%, 40%, 60%, 80% { transform: translateX(5px) scale(var(--sprite-scale, 1)); } } 
 .shake-anim { animation: shake 0.5s linear; }
 .opponent-sprite.shake-anim { --sprite-scale: 1.4; }
@@ -465,3 +636,15 @@ body.dark-mode .game-container {
 .pokeball-throw-animation { position: absolute; width: clamp(20px, 5vmin, 30px); height: clamp(20px, 5vmin, 30px); background-image: var(--item-icon-pokeball); background-size: contain; background-repeat: no-repeat; z-index: 100; animation: throwAndWiggle 3.5s forwards; transform-origin: center bottom; }
 @keyframes throwAndWiggle { 0% { transform: translate(0,0) scale(1) rotate(0deg); opacity: 1;} 15% { transform: translate(calc(var(--target-x) / 2), calc(var(--target-y) / 2 - 50px)) scale(1.2) rotate(-180deg); opacity: 1;} 30% { transform: translate(var(--target-x), var(--target-y)) scale(1.5) rotate(-360deg); opacity: 1;} 32% { transform: translate(var(--target-x), var(--target-y)) scale(1.5) rotate(-360deg); opacity: 1;} 40% { transform: translate(var(--target-x), var(--target-y)) scale(1.5) rotate(-375deg); opacity: 1;} 50% { transform: translate(var(--target-x), var(--target-y)) scale(1.5) rotate(-345deg); opacity: 1;} 60% { transform: translate(var(--target-x), var(--target-y)) scale(1.5) rotate(-370deg); opacity: 1;} 70% { transform: translate(var(--target-x), var(--target-y)) scale(1.5) rotate(-350deg); opacity: 1;} 80% { transform: translate(var(--target-x), var(--target-y)) scale(1.5) rotate(-365deg); opacity: 1;} 90% { transform: translate(var(--target-x), var(--target-y)) scale(1.5) rotate(-355deg); opacity: 1;} 95% { transform: translate(var(--target-x), var(--target-y)) scale(1.5) rotate(-360deg); opacity: 1;} 100% { transform: translate(var(--target-x), var(--target-y)) scale(1.5) rotate(-360deg); opacity: 1;} }
 .pokemon-caught-flash > img { animation: flash 0.15s linear 3; }
+
+/* --- Gym Leader & My Cards Screens --- */
+#gymLeaderSelectScreen .gym-leader-button { background-color: #8e44ad; border-color: #732d91; }
+#gymLeaderDetailScreen #gymLeaderCardImage { max-width: 80%; max-height: 50vh; object-fit: contain; margin-bottom: 2vmin; border: 3px solid var(--border-trainer-frame); border-radius: 10px; }
+#gymLeaderDetailScreen #btnStartGymBattle { background-color: #e67e22; border-color: #d35400; }
+#myCardsScreen .cards-collection-grid, #myCardsScreen .badges-collection-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(clamp(120px, 25vw, 180px), 1fr)); gap: 2vmin; width: 100%; max-width: 700px; margin-bottom: 3vmin; padding: 1vmin; background-color: rgba(0,0,0,0.15); border-radius: 8px; }
+#myCardsScreen .collected-card-item img { width: 100%; height: auto; object-fit: contain; border-radius: 6px; border: 2px solid var(--button-subtle-border); }
+#myCardsScreen .collected-badge-item { display: flex; flex-direction: column; align-items: center; text-align: center; }
+#myCardsScreen .collected-badge-item img { width: clamp(50px, 12vmin, 80px); height: clamp(50px, 12vmin, 80px); object-fit: contain; margin-bottom: 0.5vmin; animation: badge-float 3s ease-in-out infinite; }
+#myCardsScreen .collected-badge-item p { font-size: clamp(0.7em, 2.5vmin, 0.9em); margin: 0; }
+@keyframes badge-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+#myCardsScreen .no-collected-items { text-align: center; font-style: italic; opacity: 0.7; width: 100%; padding: 2vmin; display:none; }

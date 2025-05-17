@@ -64,7 +64,7 @@
                      <button class="submenu-tab" id="tabInventory">INVENTORY</button>
                      <button class="submenu-tab" id="tabTeam">TEAM</button>
                      <button class="submenu-tab" id="tabMyCards">MY CARDS</button> 
-					 <button class="submenu-tab" id="tabMyPC">MY PC</button> 
+                     <button class="submenu-tab" id="tabMyPC">MY PC</button>
                  </div>
              </div>
         </div>
@@ -73,7 +73,7 @@
             <h2>PLAY MODES</h2>
             <button class="play-mode-button" id="btnQuickBattlePlay">QUICK BATTLE</button>
             <button class="play-mode-button" id="btnGymBattlePlay">GYM BATTLE</button>
-            <button class="play-mode-button" id="btnEliteBattlesPlay">ELITE BATTLES</button> <!-- New Button -->
+            <button class="play-mode-button" id="btnEliteBattlesPlay">ELITE BATTLES</button>
             <button class="play-mode-button" id="btnWildModePlay">WILD MODE</button>
             <button class="play-mode-button" id="btnBackToMainFromPlay">BACK</button>
         </div>
@@ -91,13 +91,13 @@
             <div id="marketCoinDisplay">Coins: 0</div>
             <div class="market-items-grid">
                 <div class="market-item" data-item-id="pokeball">
-                    <img class="item-icon pokeball-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Poké Ball"> <!-- Placeholder, styled by CSS var -->
+                    <img class="item-icon pokeball-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Poké Ball">
                     <p class="item-name">Poké Ball</p>
                     <p class="item-price">Price: 5 Coins</p>
                     <button class="buy-button" data-item-name="Poke Ball" data-price="5">BUY</button>
                 </div>
                 <div class="market-item" data-item-id="greatball">
-                    <img class="item-icon greatball-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Great Ball"> <!-- Placeholder -->
+                    <img class="item-icon greatball-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Great Ball">
                     <p class="item-name">Great Ball</p>
                     <p class="item-price">Price: 10 Coins</p>
                     <button class="buy-button" data-item-name="Great Ball" data-price="10">BUY</button>
@@ -170,31 +170,35 @@
             </div>
             <button id="btnBackToMainFromMyCards" class="my-cards-back-button">BACK TO MAIN MENU</button>
         </div>
-		<div id="pcScreen" class="screen" style="display: none;">
-            <h2>MY PC</h2>
-            <div class="pc-layout-container">
-                <div class="pc-column">
-                    <h3>YOUR TEAM (Max 6)</h3>
-                    <div id="pcTeamGrid" class="team-grid pc-grid-display">
-                        <!-- Team Pokémon worden hier geladen -->
-                        <p class="no-pokemon">Team is empty.</p>
-                    </div>
-                </div>
-                <div class="pc-column">
-                    <h3>POKÉMON IN PC</h3>
-                    <div id="pcBoxGrid" class="inventory-grid pc-grid-display">
-                        <!-- PC Pokémon worden hier geladen -->
-                        <p class="no-items">PC Box is empty.</p>
-                    </div>
-                </div>
-            </div>
-            <p id="pcInstructionText" class="pc-instructions">Select a Pokémon from your Team and one from your PC to swap them. Or, select a Pokémon to move to an available slot.</p>
-            <div class="pc-buttons-container">
-                <button id="btnConfirmSwapPC" class="pc-action-button" disabled>SWAP / MOVE</button>
-                <button id="btnBackToMainFromPC" class="pc-action-button back">BACK TO MAIN MENU</button>
-            </div>
-        </div>
 
+        <!-- PC SCREEN - CORRECTE STRUCTUUR VOOR SCROLLEN MET CSS -->
+        <div id="pcScreen" class="screen" style="display: none;">
+            <h2>MY PC</h2> 
+            <div class="pc-scroll-wrapper">
+                <div class="pc-content-area">
+                    <div class="pc-layout-container">
+                        <div class="pc-column">
+                            <h3>YOUR TEAM (Max 6)</h3>
+                            <div id="pcTeamGrid" class="pc-grid-display">
+                                <p class="no-pokemon" style="display:block;">Team is empty.</p>
+                            </div>
+                        </div>
+                        <div class="pc-column">
+                            <h3>POKÉMON IN PC</h3>
+                            <div id="pcBoxGrid" class="pc-grid-display">
+                                <p class="no-items" style="display:block;">PC Box is empty.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <p id="pcInstructionText" class="pc-instructions">Select Pokémon to swap or move.</p>
+                    <div class="pc-buttons-container">
+                        <button id="btnConfirmSwapPC" class="pc-action-button" disabled>SWAP / MOVE</button>
+                        <button id="btnBackToMainFromPC" class="pc-action-button back">BACK TO MAIN MENU</button>
+                    </div>
+                </div> <!-- Einde pc-content-area -->
+            </div> <!-- Einde pc-scroll-wrapper -->
+        </div>
+        <!-- EINDE PC SCREEN -->
 
         <div id="battleScreen" class="screen" style="display: none;">
             <div class="battle-arena">
