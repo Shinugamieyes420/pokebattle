@@ -64,7 +64,7 @@
                      <button class="submenu-tab" id="tabInventory">INVENTORY</button>
                      <button class="submenu-tab" id="tabTeam">TEAM</button>
                      <button class="submenu-tab" id="tabMyCards">MY CARDS</button> 
-                     <button class="submenu-tab" id="tabMyPC">MY PC</button>
+                     <button class="submenu-tab" id="tabMyPc">MY PC</button> <!-- NEW PC BUTTON -->
                  </div>
              </div>
         </div>
@@ -134,6 +134,26 @@
             <button id="btnBackToMainFromTeam" class="team-back-button">BACK TO MAIN MENU</button>
         </div>
 
+        <!-- NEW PC BOX SCREEN -->
+        <div id="pcBoxScreen" class="screen" style="display: none;">
+            <h2>MY PC</h2>
+            <div class="pc-interface">
+                <div class="pc-column">
+                    <h3>YOUR TEAM (<span id="pcTeamCount">0</span>/6)</h3>
+                    <div id="pcTeamGrid" class="pc-grid">
+                        <p class="no-pokemon-pc-team" style="display:none;">Team is empty.</p>
+                    </div>
+                </div>
+                <div class="pc-column">
+                    <h3>PC BOX (<span id="pcBoxCount">0</span>/<span id="pcBoxCapacity">30</span>)</h3>
+                    <div id="pcBoxGrid" class="pc-grid">
+                        <p class="no-pokemon-pc-box" style="display:none;">PC Box is empty.</p>
+                    </div>
+                </div>
+            </div>
+            <button id="btnBackToMainFromPcBox" class="pc-back-button">BACK TO MAIN MENU</button>
+        </div>
+
         <div id="teamSelectScreen" class="screen" style="display: none;">
             <h2>SELECT YOUR BATTLE TEAM (CHOOSE 3)</h2>
             <div id="teamSelectGrid">
@@ -171,34 +191,6 @@
             <button id="btnBackToMainFromMyCards" class="my-cards-back-button">BACK TO MAIN MENU</button>
         </div>
 
-        <!-- PC SCREEN - CORRECTE STRUCTUUR VOOR SCROLLEN MET CSS -->
-        <div id="pcScreen" class="screen" style="display: none;">
-            <h2>MY PC</h2> 
-            <div class="pc-scroll-wrapper">
-                <div class="pc-content-area">
-                    <div class="pc-layout-container">
-                        <div class="pc-column">
-                            <h3>YOUR TEAM (Max 6)</h3>
-                            <div id="pcTeamGrid" class="pc-grid-display">
-                                <p class="no-pokemon" style="display:block;">Team is empty.</p>
-                            </div>
-                        </div>
-                        <div class="pc-column">
-                            <h3>POKÉMON IN PC</h3>
-                            <div id="pcBoxGrid" class="pc-grid-display">
-                                <p class="no-items" style="display:block;">PC Box is empty.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <p id="pcInstructionText" class="pc-instructions">Select Pokémon to swap or move.</p>
-                    <div class="pc-buttons-container">
-                        <button id="btnConfirmSwapPC" class="pc-action-button" disabled>SWAP / MOVE</button>
-                        <button id="btnBackToMainFromPC" class="pc-action-button back">BACK TO MAIN MENU</button>
-                    </div>
-                </div> <!-- Einde pc-content-area -->
-            </div> <!-- Einde pc-scroll-wrapper -->
-        </div>
-        <!-- EINDE PC SCREEN -->
 
         <div id="battleScreen" class="screen" style="display: none;">
             <div class="battle-arena">
