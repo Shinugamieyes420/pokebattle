@@ -359,20 +359,29 @@ body.dark-mode .game-container { border-color: #555; box-shadow: 0 0 15px rgba(1
 .pokemon-caught-flash > img { animation: flash 0.15s linear 3; }
 /* PC Screen Styles */
 #pcScreen {
-    background-color: var(--bg-options-menu); /* Hergebruik bestaande var */
-    padding: 3vmin;
-	padding-bottom: calc(3vmin + env(safe-area-inset-bottom, 20px));
-    align-items: center;
-    justify-content: flex-start; /* Start bovenaan */
-    gap: 2vmin;
-    overflow-y: auto;
+    background-color: var(--bg-options-menu); 
+    padding: 3vmin; /* Je normale padding aan alle kanten */
+    /* padding-bottom: calc(3vmin + env(safe-area-inset-bottom, 20px)); */ /* <<-- ZET DEZE TIJDELIJK UIT (commentaar) */
+
+    align-items: center; /* Horizontaal centreren van de inhoud */
+    /* justify-content: flex-start;  Kan weg of blijven, minder impact als het scrollt */
+    gap: 2vmin; /* Ruimte tussen de directe kinderen van #pcScreen */
+
+    /* BELANGRIJK VOOR SCROLLEN: */
+    overflow-y: auto;       /* Sta verticaal scrollen toe als nodig */
+    height: 100%;           /* Probeer de volledige hoogte van de parent (.game-container) te gebruiken */
+    box-sizing: border-box; /* Zorgt dat padding en border binnen de 100% hoogte vallen! */
+
+    /* Zorg dat het nog steeds een flex container is voor zijn kinderen: */
+    display: flex;
+    flex-direction: column;
 }
 
 #pcScreen h2 {
     font-size: clamp(1.6em, 6vmin, 2.5em);
     margin-bottom: 2vmin;
     text-align: center;
-    flex-shrink: 0;
+    flex-shrink: 0; /* Zorgt dat de titel niet krimpt als er weinig ruimte is */
 }
 
 .pc-layout-container {
@@ -415,14 +424,11 @@ body.dark-mode .game-container { border-color: #555; box-shadow: 0 0 15px rgba(1
     display: flex; 
     flex-direction: column;
     gap: 1.5vmin;
-    width: 100%;
+    width: 100%; /* Zorg dat de grids de breedte van hun .pc-column vullen */
     padding: 1vmin;
     background-color: rgba(0,0,0,0.2);
     border-radius: 8px;
-    min-height: 150px; 
-    max-height: 45vh; /* Aangepast voor betere verdeling op mobiel */
-    overflow-y: auto;
-    flex-grow: 1; 
+    min-height: 100px;  
 }
 
 @media (min-width: 768px) { /* Voor grotere schermen (desktop) */
