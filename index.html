@@ -64,7 +64,7 @@
                      <button class="submenu-tab" id="tabInventory">INVENTORY</button>
                      <button class="submenu-tab" id="tabTeam">TEAM</button>
                      <button class="submenu-tab" id="tabMyCards">MY CARDS</button> 
-                     <button class="submenu-tab" id="tabMyPc">MY PC</button> <!-- NEW PC BUTTON -->
+                     <button class="submenu-tab" id="tabMyPc">MY PC</button>
                  </div>
              </div>
         </div>
@@ -73,7 +73,7 @@
             <h2>PLAY MODES</h2>
             <button class="play-mode-button" id="btnQuickBattlePlay">QUICK BATTLE</button>
             <button class="play-mode-button" id="btnGymBattlePlay">GYM BATTLE</button>
-            <button class="play-mode-button" id="btnEliteBattlesPlay">ELITE BATTLES</button>
+            <button class="play-mode-button" id="btnEliteBattlesPlay">ELITE FOUR</button> <!-- Text changed for clarity -->
             <button class="play-mode-button" id="btnWildModePlay">WILD MODE</button>
             <button class="play-mode-button" id="btnBackToMainFromPlay">BACK</button>
         </div>
@@ -134,7 +134,6 @@
             <button id="btnBackToMainFromTeam" class="team-back-button">BACK TO MAIN MENU</button>
         </div>
 
-        <!-- NEW PC BOX SCREEN -->
         <div id="pcBoxScreen" class="screen" style="display: none;">
             <h2>MY PC</h2>
             <div class="pc-interface">
@@ -155,7 +154,7 @@
         </div>
 
         <div id="teamSelectScreen" class="screen" style="display: none;">
-            <h2>SELECT YOUR BATTLE TEAM (CHOOSE 3)</h2>
+            <h2 id="teamSelectTitle">SELECT YOUR BATTLE TEAM</h2> <!-- Generic Title -->
             <div id="teamSelectGrid">
                 <!-- Pokémon options will be populated here by JavaScript -->
             </div>
@@ -178,11 +177,33 @@
             <button id="btnBackToGymSelectFromDetail" class="gym-detail-button back">BACK TO GYM LEADERS</button>
         </div>
 
+        <!-- NEW ELITE FOUR SCREENS -->
+        <div id="eliteFourSelectScreen" class="screen" style="display: none;">
+            <h2>CHOOSE AN ELITE FOUR MEMBER</h2>
+            <div id="eliteFourGrid" class="trainers-grid">
+                <!-- Elite Four Members will be populated here by JavaScript -->
+            </div>
+            <button id="btnBackToPlayMenuFromEliteFourSelect" class="elite-four-button back">BACK TO PLAY MODES</button>
+        </div>
+
+        <div id="eliteFourDetailScreen" class="screen" style="display: none;">
+            <h2 id="eliteFourDetailName">Elite Four Member</h2>
+            <img id="eliteFourCardImage" src="" alt="Elite Four Member Card">
+            <p id="eliteFourDialog"></p>
+            <button id="btnStartEliteFourBattle" class="elite-four-detail-button">START BATTLE</button>
+            <button id="btnBackToEliteFourSelectFromDetail" class="elite-four-detail-button back">BACK TO ELITE FOUR</button>
+        </div>
+        <!-- END OF NEW ELITE FOUR SCREENS -->
+
         <div id="myCardsScreen" class="screen" style="display: none;">
             <h2>MY CARDS & BADGES</h2>
-            <h3>Collected Cards</h3>
+            <h3>Collected Gym Leader Cards</h3>
             <div id="collectedCardsGrid" class="cards-collection-grid">
-                <p class="no-collected-items" id="noCollectedCardsMsg" style="display:none;">No cards collected yet.</p>
+                <p class="no-collected-items" id="noCollectedCardsMsg" style="display:none;">No Gym Leader cards collected yet.</p>
+            </div>
+            <h3>Collected Elite Four Cards</h3> <!-- New Section for Elite Four Cards -->
+            <div id="collectedEliteFourCardsGrid" class="cards-collection-grid">
+                <p class="no-collected-items" id="noCollectedEliteFourCardsMsg" style="display:none;">No Elite Four cards collected yet.</p>
             </div>
             <h3>Collected Badges</h3>
             <div id="collectedBadgesGrid" class="badges-collection-grid">
