@@ -3,10 +3,7 @@ let currentScreen = 'intro';
 let selectedTrainerData = null; 
 let tempSelectedStarter = null; 
 let isNewGameSetup = false; 
-let selectedPokemonForPCSwap = { 
-    team: null, // { pokemon: dePokemon, element: hetDivElement, originalIndex: deIndexInTeam }
-    pc: null    // { pokemon: dePokemon, element: hetDivElement, originalIndex: deIndexInPCBox }
-};
+
 let battleState = { 
     playerTeam: [], 
     opponentTeam: [], 
@@ -51,9 +48,7 @@ const screens = {
     gymLeaderDetail: document.getElementById('gymLeaderDetailScreen'), 
     myCards: document.getElementById('myCardsScreen'), 
     battle: document.getElementById('battleScreen'), 
-    switchPokemon: document.getElementById('switchPokemonScreen'),
-    pc: document.getElementById('pcScreen') 
-	
+    switchPokemon: document.getElementById('switchPokemonScreen') 
 };
 const chosenTrainerNameSpan = document.getElementById('chosenTrainerName'); const confirmYesButton = document.getElementById('confirmYes'); const confirmNoButton = document.getElementById('confirmNo'); const trainerCards = document.querySelectorAll('.trainer-card'); const chosenTrainerImageMainMenu = document.getElementById('chosenTrainerImageMainMenu'); const playerCoinsDisplayMainMenuEl = document.getElementById('playerCoinsDisplayMainMenu'); 
 const btnPlay = document.getElementById('btnPlay'); 
@@ -84,12 +79,7 @@ const startersGridEl = document.querySelector('#starterSelectScreen .starters-gr
 const chosenStarterNameDialogSpan = document.getElementById('chosenStarterNameDialog'); 
 const confirmStarterYesButton = document.getElementById('confirmStarterYes');
 const confirmStarterNoButton = document.getElementById('confirmStarterNo');
-const tabMyPC = document.getElementById('tabMyPC'); 
-const pcTeamGridEl = document.getElementById('pcTeamGrid'); 
-const pcBoxGridEl = document.getElementById('pcBoxGrid'); 
-const pcInstructionTextEl = document.getElementById('pcInstructionText'); 
-const btnConfirmSwapPC = document.getElementById('btnConfirmSwapPC'); 
-const btnBackToMainFromPC = document.getElementById('btnBackToMainFromPC');
+
 
 document.addEventListener('DOMContentLoaded', () => {
     const marketPokeballIcon = document.querySelector('.market-item[data-item-id="pokeball"] .item-icon');
@@ -4846,218 +4836,6 @@ function showMyCardsScreen() {
     switchScreen('myCards');
 }
 
-function showPCScreen() {
-    if (!selectedTrainerData) {
-        alert("Please select a trainer first.");
-        switchScreen('characterSelect');
-        return;
-    }
-    populatePCGrids();
-    resetPCSwapSelection(); // Reset selecties bij openen PC
-    updatePCSwapButtonState(); // Update knop status
-    // pcInstructionTextEl.textContent = "Select a Pokémon from your Team and one from your PC to swap them. Or, select a Pokémon to move to an available slot."; // Wordt nu door updatePCSwapButtonState gedaan
-    switchScreen('pc');
-}
-
-function populatePCGrids() {
-    // Team Grid in PC
-    pcTeamGridEl.innerHTML = ''; // Maak leeg voor opnieuw vullen
-    const teamForPC = selectedTrainerData.team.filter(p => p); // Filter eventuele nulls/undefineds eruit
-    if (teamForPC.length === 0) {
-        pcTeamGridEl.innerHTML = '<p class="no-pokemon" style="display:block;">Team is empty.</p>';
-    } else {
-        teamForPC.forEach((pokemon, index) => {
-            const pCard = createPokemonCardForPC(pokemon, 'team', index);
-            pcTeamGridEl.appendChild(pCard);
-        });
-    }
-
-    // PC Box Grid
-    pcBoxGridEl.innerHTML = ''; // Maak leeg voor opnieuw vullen
-    const pcBoxForDisplay = selectedTrainerData.pcBox.filter(p => p); // Filter eventuele nulls/undefineds
-    if (pcBoxForDisplay.length === 0) {
-        pcBoxGridEl.innerHTML = '<p class="no-items" style="display:block;">PC Box is empty.</p>';
-    } else {
-        pcBoxForDisplay.forEach((pokemon, index) => {
-            const pCard = createPokemonCardForPC(pokemon, 'pc', index);
-            pcBoxGridEl.appendChild(pCard);
-        });
-    }
-}
-
-function createPokemonCardForPC(pokemon, type, originalArrayIndex) {
-    const pCard = document.createElement('div');
-    pCard.classList.add('team-pokemon-card'); // Hergebruik bestaande stijl
-    pCard.dataset.pokemonId = pokemon.id; // Unieke ID van de Pokémon
-    pCard.dataset.type = type; // 'team' of 'pc'
-    pCard.dataset.originalIndex = originalArrayIndex; // Index in de originele array (team of pcBox)
-
-    const pSprite = document.createElement('img');
-    pSprite.classList.add('pokemon-list-sprite');
-    pSprite.src = pokemon.spriteFrontUrl;
-    pSprite.alt = pokemon.name;
-
-    const pDetails = document.createElement('div');
-    pDetails.classList.add('pokemon-details');
-    // Zorg dat HP correct wordt weergegeven, ook als het 0 is
-    const currentHPDisplay = Math.max(0, Math.floor(pokemon.currentHP));
-    pDetails.innerHTML = `<span class="pokemon-name">${pokemon.name}</span> <br>HP: ${currentHPDisplay}/${pokemon.maxHP} ${pokemon.status ? '('+pokemon.status+')' : ''}`;
-    
-    pCard.appendChild(pSprite);
-    pCard.appendChild(pDetails);
-
-    pCard.addEventListener('click', () => handlePCPokemonSelect(pokemon, pCard, type, originalArrayIndex));
-    return pCard;
-}
-
-function handlePCPokemonSelect(pokemon, cardElement, type, originalIndex) {
-    // Huidige selectie voor dit type (team of pc)
-    const currentSelectionForType = selectedPokemonForPCSwap[type];
-
-    // Als er al iets geselecteerd was in DIT type, deselecteer dat element visueel
-    if (currentSelectionForType && currentSelectionForType.element) {
-        currentSelectionForType.element.classList.remove('selected-for-swap');
-    }
-
-    // Als dezelfde kaart opnieuw wordt geklikt, deselecteer het en reset de selectie voor DIT type
-    if (currentSelectionForType && currentSelectionForType.pokemon.id === pokemon.id) {
-        selectedPokemonForPCSwap[type] = null;
-        // cardElement blijft zonder 'selected-for-swap' class
-    } else {
-        // Nieuwe selectie: markeer visueel en sla op
-        cardElement.classList.add('selected-for-swap');
-        selectedPokemonForPCSwap[type] = { 
-            pokemon: pokemon, 
-            element: cardElement, 
-            originalIndex: originalIndex // Belangrijk om de *huidige* index in de array op te slaan
-        };
-    }
-    updatePCSwapButtonState();
-}
-
-function resetPCSwapSelection() {
-    if (selectedPokemonForPCSwap.team && selectedPokemonForPCSwap.team.element) {
-        selectedPokemonForPCSwap.team.element.classList.remove('selected-for-swap');
-    }
-    if (selectedPokemonForPCSwap.pc && selectedPokemonForPCSwap.pc.element) {
-        selectedPokemonForPCSwap.pc.element.classList.remove('selected-for-swap');
-    }
-    selectedPokemonForPCSwap = { team: null, pc: null };
-    // updatePCSwapButtonState(); // Roep dit aan om de knop en tekst te resetten
-}
-
-function updatePCSwapButtonState() {
-    const teamSelection = selectedPokemonForPCSwap.team;
-    const pcSelection = selectedPokemonForPCSwap.pc;
-    let instruction = "Select Pokémon to swap or move."; // Standaard instructie
-
-    // Scenario 1: Team Pokémon geselecteerd EN PC Pokémon geselecteerd (SWAP)
-    if (teamSelection && pcSelection) {
-        btnConfirmSwapPC.disabled = false;
-        btnConfirmSwapPC.textContent = "SWAP";
-        instruction = `Swap ${teamSelection.pokemon.name} (Team) with ${pcSelection.pokemon.name} (PC)?`;
-    }
-    // Scenario 2: Alleen Team Pokémon geselecteerd (MOVE TO PC)
-    else if (teamSelection && !pcSelection) {
-        if (selectedTrainerData.team.length > 1) { // Moet minstens 1 in team blijven
-            btnConfirmSwapPC.disabled = false;
-            btnConfirmSwapPC.textContent = "MOVE TO PC";
-            instruction = `Move ${teamSelection.pokemon.name} from Team to PC?`;
-        } else {
-            btnConfirmSwapPC.disabled = true;
-            btnConfirmSwapPC.textContent = "MOVE TO PC";
-            instruction = `Cannot move ${teamSelection.pokemon.name}. Must keep at least one Pokémon in team.`;
-        }
-    }
-    // Scenario 3: Alleen PC Pokémon geselecteerd (MOVE TO TEAM)
-    else if (!teamSelection && pcSelection) {
-        if (selectedTrainerData.team.length < MAX_TEAM_SIZE) {
-            btnConfirmSwapPC.disabled = false;
-            btnConfirmSwapPC.textContent = "MOVE TO TEAM";
-            instruction = `Move ${pcSelection.pokemon.name} from PC to Team?`;
-        } else {
-            btnConfirmSwapPC.disabled = true;
-            btnConfirmSwapPC.textContent = "MOVE TO TEAM";
-            instruction = `Cannot move ${pcSelection.pokemon.name}. Team is full.`;
-        }
-    }
-    // Geen of ongeldige selectie
-    else {
-        btnConfirmSwapPC.disabled = true;
-        btnConfirmSwapPC.textContent = "SWAP / MOVE";
-    }
-    
-    pcInstructionTextEl.textContent = instruction;
-}
-
-function executePCSwapOrMove() {
-    const teamSelection = selectedPokemonForPCSwap.team;
-    const pcSelection = selectedPokemonForPCSwap.pc;
-
-    // Belangrijk: werk met de indices die opgeslagen zijn TIJDENS de selectie,
-    // omdat de daadwerkelijke array indices kunnen veranderen als je items toevoegt/verwijdert.
-    // De pokemon.id is de meest betrouwbare manier om de *juiste* pokemon te vinden in de arrays vlak voor de wissel.
-
-    if (teamSelection && pcSelection) { // SWAP
-        // Zoek de actuele indices op basis van ID, voor het geval de arrays gemanipuleerd zijn
-        const actualTeamIndex = selectedTrainerData.team.findIndex(p => p && p.id === teamSelection.pokemon.id);
-        const actualPCIndex = selectedTrainerData.pcBox.findIndex(p => p && p.id === pcSelection.pokemon.id);
-
-        if (actualTeamIndex === -1 || actualPCIndex === -1) {
-            alert("Error: Could not find selected Pokémon for swap. Please try again.");
-            populatePCGrids(); // Herlaad de grids
-            resetPCSwapSelection();
-            updatePCSwapButtonState();
-            return;
-        }
-
-        // Verwissel de Pokémon objecten in de arrays
-        const tempTeamPokemon = selectedTrainerData.team[actualTeamIndex];
-        selectedTrainerData.team[actualTeamIndex] = selectedTrainerData.pcBox[actualPCIndex];
-        selectedTrainerData.pcBox[actualPCIndex] = tempTeamPokemon;
-        
-        alert(`${teamSelection.pokemon.name} swapped with ${pcSelection.pokemon.name}!`);
-
-    } else if (teamSelection && !pcSelection) { // MOVE TEAM TO PC
-        if (selectedTrainerData.team.length <= 1) {
-            alert("You must keep at least one Pokémon in your team!");
-            resetPCSwapSelection();
-            updatePCSwapButtonState();
-            return;
-        }
-        const actualTeamIndex = selectedTrainerData.team.findIndex(p => p && p.id === teamSelection.pokemon.id);
-        if (actualTeamIndex === -1) {
-             alert("Error: Could not find selected Pokémon to move. Please try again.");
-             populatePCGrids(); resetPCSwapSelection(); updatePCSwapButtonState(); return;
-        }
-        const pokemonToMove = selectedTrainerData.team.splice(actualTeamIndex, 1)[0];
-        selectedTrainerData.pcBox.push(pokemonToMove);
-        alert(`${teamSelection.pokemon.name} moved to PC!`);
-
-    } else if (!teamSelection && pcSelection) { // MOVE PC TO TEAM
-        if (selectedTrainerData.team.length >= MAX_TEAM_SIZE) {
-            alert("Your team is full!");
-            resetPCSwapSelection();
-            updatePCSwapButtonState();
-            return;
-        }
-        const actualPCIndex = selectedTrainerData.pcBox.findIndex(p => p && p.id === pcSelection.pokemon.id);
-        if (actualPCIndex === -1) {
-            alert("Error: Could not find selected Pokémon to move. Please try again.");
-            populatePCGrids(); resetPCSwapSelection(); updatePCSwapButtonState(); return;
-        }
-        const pokemonToMove = selectedTrainerData.pcBox.splice(actualPCIndex, 1)[0];
-        selectedTrainerData.team.push(pokemonToMove);
-        alert(`${pcSelection.pokemon.name} moved to Team!`);
-    }
-
-    saveGame();
-    populatePCGrids(); // Herlaad de grids met de nieuwe data
-    resetPCSwapSelection(); // Reset de selectie
-    updatePCSwapButtonState(); // Update de knop en instructietekst
-}
-
-
 function showStarterSelectScreen() {
     startersGridEl.innerHTML = '';
     const starterPokedexIds = [1, 4, 7,152,155,158]; 
@@ -5232,12 +5010,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(btnBackToPlayMenuFromGymSelect) btnBackToPlayMenuFromGymSelect.addEventListener('click', () => switchScreen('playMenu'));
         if(btnBackToGymSelectFromDetail) btnBackToGymSelectFromDetail.addEventListener('click', showGymLeaderSelectScreen);
         if(btnBackToMainFromMyCards) btnBackToMainFromMyCards.addEventListener('click', () => switchScreen('mainMenu'));
-        if(tabMyPC) tabMyPC.addEventListener('click', showPCScreen); 
-        if(btnConfirmSwapPC) btnConfirmSwapPC.addEventListener('click', executePCSwapOrMove); 
-        if(btnBackToMainFromPC) btnBackToMainFromPC.addEventListener('click', () => { 
-        resetPCSwapSelection(); // Zorg ervoor dat selecties worden gereset bij het verlaten
-        switchScreen('mainMenu');
-    });
+
         if(actionMenuEl) actionMenuEl.addEventListener('click', (e) => { 
             if (!battleState.playerTurn || battleState.isProcessingMessage) return; 
             const buttonTarget = e.target.closest('button');
