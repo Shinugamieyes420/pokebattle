@@ -3,35 +3,62 @@ let currentScreen = 'intro';
 let selectedTrainerData = null;
 let tempSelectedStarter = null;
 let isNewGameSetup = false;
+let isMenuMusicEnabled = true;
+let isBattleMusicEnabled = true;
 
 let battleState = {
     playerTeam: [],
     opponentTeam: [],
-    playerActiveIndex: 0, opponentActiveIndex: 0,
+    playerActiveIndex: 0,
+    opponentActiveIndex: 0,
     playerTurn: true,
     currentActingPokemonIsPlayer: true,
     attackerUsedMoveFirstThisTurn: false,
-    messageQueue: [], isProcessingMessage: false, onMessageComplete: null,
+    messageQueue: [],
+    isProcessingMessage: false,
+    onMessageComplete: null,
     switchingAfterFaint: false,
     isWildBattle: false,
     isGymBattle: false,
     currentGymLeaderKey: null,
     isEliteFourBattle: false,
     currentEliteFourMemberKey: null,
+    isPokemonLeagueBattle: false,
+    currentLeagueOpponentIndex: 0,
+    leagueBattlesWon: 0,
+    isTeamRocketBattle: false,
+    currentTeamRocketGruntIndex: 0,
     pendingBattleStartFunction: null,
     selectedBattleTeamIndexes: []
 };
 
 const GAME_LEVEL = 50;
-const SHINY_CHANCE = 0.1; // 10% kans op shiny voor wilde/tegenstander Pokémon
+const SHINY_CHANCE = 0.1;
 const CRITICAL_HIT_CHANCE_BASE = 1 / 24;
 const CRITICAL_HIT_MULTIPLIER = 1.5;
 const PARALYSIS_CHANCE_NO_MOVE = 0.25;
 const FREEZE_THAW_CHANCE = 0.2;
 const MAX_TEAM_SIZE = 6;
-const MAX_PC_BOX_SIZE = 50;
-const TCG_CARDS_PER_PACK = 3; // Aantal kaarten per TCG pack
+const MAX_PC_BOX_SIZE = 400;
+const POKEMON_PER_PC_PAGE = 10;
+let currentPcPage = 1;
+const TCG_CARDS_PER_PAGE = 9;
+let currentTcgPage = 1;
+const TCG_CARDS_PER_PACK = 7;
+const TEAM_ROCKET_GRUNTS_TO_DEFEAT = 3;
+const TEAM_ROCKET_POKEMON_COUNT = 3;
+const ADMIN_PASSWORD = "Admin01!";
+const ADMIN_CODE_MUDKIP = "loveyou";
+const ADMIN_CODE_FROAKIE = "profoak";
+const ADMIN_CODE_ASHITEMS = "Trainerash";
 
+const BATTLE_BACKGROUNDS = [
+    "url('https://pokemonrevolution.net/forum/uploads/monthly_2021_03/DVMT-6OXcAE2rZY.jpg.afab972f972bd7fbd4253bc7aa1cf27f.jpg')",
+    "url('https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/c4e26f17-7dcd-43f1-bf80-ebd03eff0061/d5nwldw-186afcb8-332f-4892-9366-4637673e1ae9.png/v1/fit/w_476,h_316,q_70,strp/gigantic_battle_background_by_kyle_dove_d5nwldw-375w-2x.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9MzE2IiwicGF0aCI6IlwvZlwvYzRlMjZmMTctN2RjZC00M2YxLWJmODAtZWJkMDNlZmYwMDYxXC9kNW53bGR3LTE4NmFmY2I4LTMzMmYtNDg5Mi05MzY2LTQ2Mzc2NzNlMWFlOS5wbmciLCJ3aWR0aCI6Ijw9NDc2In1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmltYWdlLm9wZXJhdGlvbnMiXX0.bBkztmO2xnNrwPbWLC20Ts9DyvH8Gq7umJxEp_yZ2TA')",
+    "url('https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/2fb2821a-1406-4a1d-9b04-6668f278e944/de2sl02-6008eb1b-f174-4afc-af71-abe76a2ede51.jpg/v1/fill/w_1192,h_670,q_70,strp/pokemon_swsh___route_1__sunset__by_phoenixoflight92_de2sl02-pre.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9NzIwIiwicGF0aCI6IlwvZlwvMmZiMjgyMWEtMTQwNi00YTFkLTliMDQtNjY2OGYyNzhlOTQ0XC9kZTJzbDAyLTYwMDhlYjFiLWYxNzQtNGFmYy1hZjcxLWFiZTc2YTJlZGU1MS5qcGciLCJ3aWR0aCI6Ijw9MTI4MCJ9XV0sImF1ZCI6WyJ1cm46c2VydmljZTppbWFnZS5vcGVyYXRpb25zIl19.TL-kw4TSYHsiQzM-wlojLK4cpML-29poobt022IjOeU')",
+    "url('https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/2fb2821a-1406-4a1d-9b04-6668f278e944/d859ys9-bd8cca6f-d69e-490b-914f-53a47240e150.png/v1/fit/w_800,h_480,q_70,strp/pokemon_x_and_y_vs_grant_battle_background_by_phoenixoflight92_d859ys9-414w-2x.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9NDgwIiwicGF0aCI6IlwvZlwvMmZiMjgyMWEtMTQwNi00YTFkLTliMDQtNjY2OGYyNzhlOTQ0XC9kODU5eXM5LWJkOGNjYTZmLWQ2OWUtNDkwYi05MTRmLTUzYTQ3MjQwZTE1MC5wbmciLCJ3aWR0aCI6Ijw9ODAwIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmltYWdlLm9wZXJhdGlvbnMiXX0.aHvcNx7ME1rd_Mwo-ZqQWkXG2Q5TWk4i4BIcb8s7JCo')"
+];
+const WILD_BATTLE_BACKGROUND = "url('https://pokemonrevolution.net/forum/uploads/monthly_2021_03/DVMT-6OXcAE2rZY.jpg.afab972f972bd7fbd4253bc7aa1cf27f.jpg')";
 
 const gameBody = document.getElementById('gameBody');
 const screens = {
@@ -44,38 +71,113 @@ const screens = {
     mainMenu: document.getElementById('mainMenuScreen'),
     playMenu: document.getElementById('playMenuScreen'),
     optionsMenu: document.getElementById('optionsMenuScreen'),
+    adminMode: document.getElementById('adminModeScreen'),
     market: document.getElementById('marketScreen'),
     inventory: document.getElementById('inventoryScreen'),
     team: document.getElementById('teamScreen'),
     pcBox: document.getElementById('pcBoxScreen'),
+    pokedex: document.getElementById('pokedexScreen'),
     teamSelect: document.getElementById('teamSelectScreen'),
     gymLeaderSelect: document.getElementById('gymLeaderSelectScreen'),
     gymLeaderDetail: document.getElementById('gymLeaderDetailScreen'),
     eliteFourSelect: document.getElementById('eliteFourSelectScreen'),
     eliteFourDetail: document.getElementById('eliteFourDetailScreen'),
+    pokemonLeague: document.getElementById('pokemonLeagueScreen'),
+    teamRocket: document.getElementById('teamRocketScreen'),
     myCards: document.getElementById('myCardsScreen'),
     tcgCards: document.getElementById('tcgCardsScreen'),
-    tcgPackOpeningOverlay: document.getElementById('tcgPackOpeningOverlay'), // TCG Pack Overlay
+    tcgCardModal: document.getElementById('tcgCardModal'),
+    tcgPackOpeningOverlay: document.getElementById('tcgPackOpeningOverlay'),
     battle: document.getElementById('battleScreen'),
-    switchPokemon: document.getElementById('switchPokemonScreen')
+    switchPokemon: document.getElementById('switchPokemonScreen'),
+    password: document.getElementById('passwordScreen'),
+    useItem: document.getElementById('useItemScreen') // NIEUW
 };
-const chosenTrainerNameSpan = document.getElementById('chosenTrainerName'); const confirmYesButton = document.getElementById('confirmYes'); const confirmNoButton = document.getElementById('confirmNo'); const trainerCards = document.querySelectorAll('.trainer-card'); const chosenTrainerImageMainMenu = document.getElementById('chosenTrainerImageMainMenu'); const playerCoinsDisplayMainMenuEl = document.getElementById('playerCoinsDisplayMainMenu');
+const chosenTrainerNameSpan = document.getElementById('chosenTrainerName');
+const confirmYesButton = document.getElementById('confirmYes');
+const confirmNoButton = document.getElementById('confirmNo');
+const trainerCards = document.querySelectorAll('.trainer-card');
+const chosenTrainerImageMainMenu = document.getElementById('chosenTrainerImageMainMenu');
+const playerCoinsDisplayMainMenuEl = document.getElementById('playerCoinsDisplayMainMenu');
+const playerGoldDisplayMainMenuEl = document.getElementById('playerGoldDisplayMainMenu'); // NIEUW
+
 const btnPlay = document.getElementById('btnPlay');
 const btnQuickBattlePlay = document.getElementById('btnQuickBattlePlay');
 const btnGymBattlePlay = document.getElementById('btnGymBattlePlay');
 const btnEliteBattlesPlay = document.getElementById('btnEliteBattlesPlay');
+const btnPokemonLeaguePlay = document.getElementById('btnPokemonLeaguePlay');
+const btnTeamRocketPlay = document.getElementById('btnTeamRocketPlay');
 const btnWildModePlay = document.getElementById('btnWildModePlay');
+const btnRaidBattlePlay = document.getElementById('btnRaidBattlePlay'); // NIEUW
 const btnBackToMainFromPlay = document.getElementById('btnBackToMainFromPlay');
-const btnOptions = document.getElementById('btnOptions'); const btnSaveGameOpt = document.getElementById('btnSaveGameOpt'); const btnResetGameOpt = document.getElementById('btnResetGameOpt'); const btnDarkModeOpt = document.getElementById('btnDarkModeOpt'); const btnBackToMainOpts = document.getElementById('btnBackToMainOpts'); const resetConfirmYesButton = document.getElementById('resetConfirmYes'); const resetConfirmNoButton = document.getElementById('resetConfirmNo'); const opponentPokemonNameEl = document.getElementById('opponentPokemonName'); const opponentHpFillEl = document.getElementById('opponentHpFill'); const opponentHpNumbersEl = document.getElementById('opponentHpNumbers'); const opponentTeamStatusEl = document.getElementById('opponentTeamStatus'); const opponentPokemonSpriteEl = document.getElementById('opponentPokemonSprite'); const opponentStatusTagEl = document.getElementById('opponentStatusTag'); const playerPokemonNameEl = document.getElementById('playerPokemonName'); const playerHpFillEl = document.getElementById('playerHpFill'); const playerHpNumbersEl = document.getElementById('playerHpNumbers'); const playerTeamStatusEl = document.getElementById('playerTeamStatus'); const playerPokemonSpriteEl = document.getElementById('playerPokemonSprite'); const playerStatusTagEl = document.getElementById('playerStatusTag'); const battleTextboxEl = document.getElementById('battleTextbox'); const battleMessageEl = document.getElementById('battleMessage'); const actionMenuEl = document.getElementById('actionMenu'); const moveMenuEl = document.getElementById('moveMenu'); const itemMenuEl = document.getElementById('itemMenu'); const attackAnimationLayer = document.getElementById('attackAnimationLayer'); const switchGridEl = document.getElementById('switchGrid'); const switchCancelButton = document.getElementById('switchCancelButton');
-const tabMarket = document.getElementById('tabMarket'); const tabInventory = document.getElementById('tabInventory'); const tabTeam = document.getElementById('tabTeam'); const tabMyCards = document.getElementById('tabMyCards');
+
+const btnOptions = document.getElementById('btnOptions');
+const btnSaveGameOpt = document.getElementById('btnSaveGameOpt');
+const btnResetGameOpt = document.getElementById('btnResetGameOpt');
+const btnDarkModeOpt = document.getElementById('btnDarkModeOpt');
+const btnToggleMenuMusicOpt = document.getElementById('btnToggleMenuMusicOpt');
+const btnToggleBattleMusicOpt = document.getElementById('btnToggleBattleMusicOpt');
+const btnAdminModeOpt = document.getElementById('btnAdminModeOpt');
+const btnBackToMainOpts = document.getElementById('btnBackToMainOpts');
+const resetConfirmYesButton = document.getElementById('resetConfirmYes');
+const resetConfirmNoButton = document.getElementById('resetConfirmNo');
+
+const adminPasswordInput = document.getElementById('adminPasswordInput');
+const btnSubmitAdminPassword = document.getElementById('btnSubmitAdminPassword');
+const adminMessageEl = document.getElementById('adminMessage');
+const btnBackToOptionsFromAdmin = document.getElementById('btnBackToOptionsFromAdmin');
+
+
+const opponentPokemonNameEl = document.getElementById('opponentPokemonName');
+const opponentHpFillEl = document.getElementById('opponentHpFill');
+const opponentHpNumbersEl = document.getElementById('opponentHpNumbers');
+const opponentTeamStatusEl = document.getElementById('opponentTeamStatus');
+const opponentPokemonSpriteEl = document.getElementById('opponentPokemonSprite');
+const opponentStatusTagEl = document.getElementById('opponentStatusTag');
+const playerPokemonNameEl = document.getElementById('playerPokemonName');
+const playerHpFillEl = document.getElementById('playerHpFill');
+const playerHpNumbersEl = document.getElementById('playerHpNumbers');
+const playerTeamStatusEl = document.getElementById('playerTeamStatus');
+const playerPokemonSpriteEl = document.getElementById('playerPokemonSprite');
+const playerStatusTagEl = document.getElementById('playerStatusTag');
+const battleTextboxEl = document.getElementById('battleTextbox');
+const battleMessageEl = document.getElementById('battleMessage');
+const actionMenuEl = document.getElementById('actionMenu');
+const moveMenuEl = document.getElementById('moveMenu');
+const itemMenuEl = document.getElementById('itemMenu');
+const attackAnimationLayer = document.getElementById('attackAnimationLayer');
+const switchGridEl = document.getElementById('switchGrid');
+const switchCancelButton = document.getElementById('switchCancelButton');
+
+const tabMarket = document.getElementById('tabMarket');
+const tabInventory = document.getElementById('tabInventory');
+const tabTeam = document.getElementById('tabTeam');
+const tabMyCards = document.getElementById('tabMyCards');
 const tabTcgCards = document.getElementById('tabTcgCards');
 const tabMyPc = document.getElementById('tabMyPc');
-const marketCoinDisplayEl = document.getElementById('marketCoinDisplay'); const marketItemsGridEl = document.querySelector('#marketScreen .market-items-grid'); const btnBackToMainFromMarket = document.getElementById('btnBackToMainFromMarket'); const inventoryGridEl = document.getElementById('inventoryGrid'); const btnBackToMainFromInventory = document.getElementById('btnBackToMainFromInventory'); const teamGridEl = document.getElementById('teamGrid'); const btnBackToMainFromTeam = document.getElementById('btnBackToMainFromTeam');
+const tabPokedex = document.getElementById('tabPokedex');
+const tabPassword = document.getElementById('tabPassword');
+
+const marketCoinDisplayEl = document.getElementById('marketCoinDisplay');
+const marketGoldDisplayEl = document.getElementById('marketGoldDisplay'); // NIEUW
+const marketItemsGridEl = document.querySelector('#marketScreen .market-items-grid');
+const btnBackToMainFromMarket = document.getElementById('btnBackToMainFromMarket');
+const inventoryGridEl = document.getElementById('inventoryGrid');
+const btnBackToMainFromInventory = document.getElementById('btnBackToMainFromInventory');
+const teamGridEl = document.getElementById('teamGrid');
+const btnBackToMainFromTeam = document.getElementById('btnBackToMainFromTeam');
 const noInventoryItemsMsg = document.querySelector('#inventoryGrid .no-items');
 const noTeamPokemonMsg = document.querySelector('#teamGrid .no-pokemon');
+
+const pokedexGridEl = document.getElementById('pokedexGrid');
+const pokedexSearchInputEl = document.getElementById('pokedexSearchInput');
+const btnBackToMainFromPokedex = document.getElementById('btnBackToMainFromPokedex');
+
 const teamSelectGridEl = document.getElementById('teamSelectGrid');
 const teamSelectConfirmButton = document.getElementById('teamSelectConfirmButton');
+const teamSelectCancelButton = document.getElementById('teamSelectCancelButton');
 const teamSelectTitleEl = document.getElementById('teamSelectTitle');
+
 const gymLeaderGridEl = document.getElementById('gymLeaderGrid');
 const btnBackToPlayMenuFromGymSelect = document.getElementById('btnBackToPlayMenuFromGymSelect');
 const gymLeaderDetailNameEl = document.getElementById('gymLeaderDetailName');
@@ -92,17 +194,29 @@ const eliteFourDialogEl = document.getElementById('eliteFourDialog');
 const btnStartEliteFourBattle = document.getElementById('btnStartEliteFourBattle');
 const btnBackToEliteFourSelectFromDetail = document.getElementById('btnBackToEliteFourSelectFromDetail');
 
-const collectedCardsGridEl = document.getElementById('collectedCardsGrid');
+const pokemonLeagueProgressEl = document.getElementById('pokemonLeagueProgress');
+const leagueOpponentNameEl = document.getElementById('leagueOpponentName');
+const leagueOpponentCardEl = document.getElementById('leagueOpponentCard');
+const btnStartLeagueBattle = document.getElementById('btnStartLeagueBattle');
+const btnBackToPlayMenuFromLeague = document.getElementById('btnBackToPlayMenuFromLeague');
+
+const teamRocketProgressEl = document.getElementById('teamRocketProgress');
+const teamRocketOpponentNameEl = document.getElementById('teamRocketOpponentName');
+const teamRocketOpponentCardEl = document.getElementById('teamRocketOpponentCard');
+const btnStartTeamRocketBattle = document.getElementById('btnStartTeamRocketBattle');
+const btnBackToPlayMenuFromTeamRocket = document.getElementById('btnBackToPlayMenuFromTeamRocket');
+
+const displayedCardImageEl = document.getElementById('displayedCardImage');
+const prevCardButton = document.getElementById('prevCardButton');
+const nextCardButton = document.getElementById('nextCardButton');
 const noCollectedCardsMsgEl = document.getElementById('noCollectedCardsMsg');
-const collectedEliteFourCardsGridEl = document.getElementById('collectedEliteFourCardsGrid');
-const noCollectedEliteFourCardsMsgEl = document.getElementById('noCollectedEliteFourCardsMsg');
-const collectedBadgesGridEl = document.getElementById('collectedBadgesGrid');
-const noCollectedBadgesMsgEl = document.getElementById('noCollectedBadgesMsg');
 const btnBackToMainFromMyCards = document.getElementById('btnBackToMainFromMyCards');
+
 const startersGridEl = document.querySelector('#starterSelectScreen .starters-grid');
 const chosenStarterNameDialogSpan = document.getElementById('chosenStarterNameDialog');
 const confirmStarterYesButton = document.getElementById('confirmStarterYes');
 const confirmStarterNoButton = document.getElementById('confirmStarterNo');
+
 const pcTeamGridEl = document.getElementById('pcTeamGrid');
 const pcBoxGridEl = document.getElementById('pcBoxGrid');
 const btnBackToMainFromPcBox = document.getElementById('btnBackToMainFromPcBox');
@@ -111,43 +225,206 @@ const pcBoxCountEl = document.getElementById('pcBoxCount');
 const pcBoxCapacityEl = document.getElementById('pcBoxCapacity');
 const noPokemonPcTeamMsg = document.querySelector('#pcTeamGrid .no-pokemon-pc-team');
 const noPokemonPcBoxMsg = document.querySelector('#pcBoxGrid .no-pokemon-pc-box');
+const pcPrevButton = document.getElementById('pcPrevButton');
+const pcNextButton = document.getElementById('pcNextButton');
+const pcPageIndicatorEl = document.getElementById('pcPageIndicator');
 
-// TCG Screen Elements
 const tcgCardsGridEl = document.getElementById('tcgCardsGrid');
 const noTcgCardsMsgEl = document.getElementById('noTcgCardsMsg');
 const btnBackToMainFromTcgCards = document.getElementById('btnBackToMainFromTcgCards');
+const tcgSetFilterEl = document.getElementById('tcgSetFilter');
+const tcgPrevPageButton = document.getElementById('tcgPrevPageButton');
+const tcgNextPageButton = document.getElementById('tcgNextPageButton');
+const tcgPageIndicatorEl = document.getElementById('tcgPageIndicator');
+const modalTcgCardImageEl = document.getElementById('modalTcgCardImage');
+const closeTcgCardModalButton = document.getElementById('closeTcgCardModalButton');
 
-// TCG Pack Opening Elements
 const tcgPackAnimationContainer = screens.tcgPackOpeningOverlay.querySelector('.tcg-pack-animation-container');
 const revealedTcgCardContainer = screens.tcgPackOpeningOverlay.querySelector('#revealedTcgCardContainer');
 const revealedTcgCardImageEl = document.getElementById('revealedTcgCardImage');
 const revealedTcgCardNameEl = document.getElementById('revealedTcgCardName');
 const closeTcgRevealButton = document.getElementById('closeTcgRevealButton');
+const prevRevealedTcgCardButton = document.getElementById('prevRevealedTcgCardButton');
+const nextRevealedTcgCardButton = document.getElementById('nextRevealedTcgCardButton');
+const revealedTcgCardIndexIndicatorEl = document.getElementById('revealedTcgCardIndexIndicator');
 
-
-// Battle Move Menu Back Button
 const btnBackFromMoves = document.getElementById('btnBackFromMoves');
+
+const btnGeneratePassword = document.getElementById('btnGeneratePassword');
+const generatedPasswordArea = document.getElementById('generatedPasswordArea');
+const inputPasswordArea = document.getElementById('inputPasswordArea');
+const btnLoadFromPassword = document.getElementById('btnLoadFromPassword');
+const btnBackToMainFromPassword = document.getElementById('btnBackToMainFromPassword');
+
+const useItemTitleEl = document.getElementById('useItemTitle'); // NIEUW
+const useItemPokemonGridEl = document.getElementById('useItemPokemonGrid'); // NIEUW
+const cancelUseItemButton = document.getElementById('cancelUseItem'); // NIEUW
+let currentItemToUse = null; // NIEUW
+
+// --- Audio Elementen & Controls ---
+const introMusicAudio = document.getElementById('introMusic');
+const battleMusicAudio1 = document.getElementById('battleMusic1');
+const battleMusicAudio2 = document.getElementById('battleMusic2');
+let currentBattleMusic = null;
+let battleMusicPlaylist = [battleMusicAudio1, battleMusicAudio2];
+let currentMusicIndex = 0;
+let battleInProgress = false;
+
+function startIntroMusic() {
+    if (!isMenuMusicEnabled || !introMusicAudio || battleInProgress) return;
+    stopBattleMusic(true);
+    if (introMusicAudio.paused) {
+        introMusicAudio.volume = 0.15;
+        introMusicAudio.currentTime = 0;
+        introMusicAudio.play().catch(e => console.warn("Intro music play failed:", e));
+    }
+}
+
+function stopIntroMusic() {
+    if (introMusicAudio) {
+        introMusicAudio.pause();
+        introMusicAudio.currentTime = 0;
+    }
+}
+
+function playNextBattleMusicTrack() {
+    if (!isBattleMusicEnabled || !battleInProgress) {
+        if (currentBattleMusic) {
+            currentBattleMusic.pause();
+            currentBattleMusic.currentTime = 0;
+            currentBattleMusic.onended = null;
+        }
+        currentBattleMusic = null;
+        return;
+    }
+
+    if (currentBattleMusic) {
+        currentBattleMusic.pause();
+        currentBattleMusic.currentTime = 0;
+        currentBattleMusic.onended = null;
+    }
+
+    currentMusicIndex = (currentMusicIndex + 1) % battleMusicPlaylist.length;
+    currentBattleMusic = battleMusicPlaylist[currentMusicIndex];
+
+    if (currentBattleMusic) {
+        currentBattleMusic.volume = 0.2;
+        currentBattleMusic.onended = playNextBattleMusicTrack;
+        currentBattleMusic.play().catch(e => console.error("Battle music play failed for next track:", e, currentBattleMusic.src));
+    } else {
+        console.error("currentBattleMusic became null in playNextBattleMusicTrack.");
+    }
+}
+
+function startBattleMusic() {
+    if (!isBattleMusicEnabled) return;
+    battleInProgress = true;
+    stopIntroMusic();
+
+    if (currentBattleMusic) {
+        currentBattleMusic.pause();
+        currentBattleMusic.currentTime = 0;
+        currentBattleMusic.onended = null;
+    }
+
+    currentMusicIndex = Math.floor(Math.random() * battleMusicPlaylist.length);
+    currentBattleMusic = battleMusicPlaylist[currentMusicIndex];
+
+    if (currentBattleMusic) {
+        currentBattleMusic.volume = 0.2;
+        currentBattleMusic.currentTime = 0;
+        currentBattleMusic.onended = playNextBattleMusicTrack;
+        currentBattleMusic.play().catch(e => console.warn("Battle music play failed:", e));
+    } else {
+        console.error("Failed to select initial battle music track.");
+    }
+}
+
+function stopBattleMusic(forceStop = false) {
+    const playerHasPokemon = battleState.playerTeam.some(p => p && p.currentHP > 0);
+    const opponentHasPokemon = battleState.opponentTeam.some(p => p && p.currentHP > 0);
+
+    if (!forceStop && battleInProgress && playerHasPokemon && opponentHasPokemon && (currentScreen === 'battle' || currentScreen === 'switchPokemon')) {
+        return;
+    }
+
+    battleInProgress = false;
+    if (currentBattleMusic) {
+        currentBattleMusic.pause();
+        currentBattleMusic.currentTime = 0;
+        currentBattleMusic.onended = null;
+    }
+    currentBattleMusic = null;
+
+    battleMusicPlaylist.forEach(audio => {
+        if (audio) {
+            audio.pause();
+            audio.currentTime = 0;
+            audio.onended = null;
+        }
+    });
+}
+
+function toggleMenuMusic() {
+    isMenuMusicEnabled = !isMenuMusicEnabled;
+    if (isMenuMusicEnabled) {
+        if (currentScreen !== 'battle' && currentScreen !== 'switchPokemon' &&
+            currentScreen !== 'intro' && currentScreen !== 'characterSelect' && currentScreen !== 'starterSelect') {
+            startIntroMusic();
+        }
+        btnToggleMenuMusicOpt.textContent = "MENU MUSIC: ON";
+    } else {
+        stopIntroMusic();
+        btnToggleMenuMusicOpt.textContent = "MENU MUSIC: OFF";
+    }
+    localStorage.setItem('blazingThunder_menuMusicEnabled', isMenuMusicEnabled);
+    alert(`Menu Music is now ${isMenuMusicEnabled ? 'ON' : 'OFF'}`);
+}
+
+function toggleBattleMusic() {
+    isBattleMusicEnabled = !isBattleMusicEnabled;
+    if (isBattleMusicEnabled) {
+        if ((currentScreen === 'battle' || currentScreen === 'switchPokemon') && battleInProgress) {
+            startBattleMusic();
+        }
+        btnToggleBattleMusicOpt.textContent = "BATTLE MUSIC: ON";
+    } else {
+        stopBattleMusic(true);
+        btnToggleBattleMusicOpt.textContent = "BATTLE MUSIC: OFF";
+    }
+    localStorage.setItem('blazingThunder_battleMusicEnabled', isBattleMusicEnabled);
+    alert(`Battle Music is now ${isBattleMusicEnabled ? 'ON' : 'OFF'}`);
+}
 
 
 document.addEventListener('DOMContentLoaded', () => {
     const marketPokeballIcon = document.querySelector('.market-item[data-item-id="pokeball"] .item-icon');
     if (marketPokeballIcon) marketPokeballIcon.style.backgroundImage = 'var(--item-icon-pokeball)';
-
     const marketGreatballIcon = document.querySelector('.market-item[data-item-id="greatball"] .item-icon');
     if (marketGreatballIcon) marketGreatballIcon.style.backgroundImage = 'var(--item-icon-greatball)';
-
+    const marketUltraballIcon = document.querySelector('.market-item[data-item-id="ultraball"] .item-icon');
+    if (marketUltraballIcon) marketUltraballIcon.style.backgroundImage = 'var(--item-icon-ultraball)';
+    const marketMasterballIcon = document.querySelector('.market-item[data-item-id="masterball"] .item-icon');
+    if (marketMasterballIcon) marketMasterballIcon.style.backgroundImage = 'var(--item-icon-masterball)';
     const marketEvoStoneIcon = document.querySelector('.market-item[data-item-id="evolutionstone"] .item-icon');
     if (marketEvoStoneIcon) marketEvoStoneIcon.style.backgroundImage = 'var(--item-icon-evolutionstone)';
-
+     const marketShinyStoneIcon = document.querySelector('.market-item[data-item-id="shinystone"] .item-icon'); // NIEUW
+    if (marketShinyStoneIcon) marketShinyStoneIcon.style.backgroundImage = 'var(--item-icon-shinystone)'; // NIEUW
     const marketPermaEvoStoneIcon = document.querySelector('.market-item[data-item-id="permaevolutionstone"] .item-icon');
     if (marketPermaEvoStoneIcon) marketPermaEvoStoneIcon.style.backgroundImage = 'var(--item-icon-evolutionstone)';
-
     const marketTcgPackIcon = document.querySelector('.market-item[data-item-id="tcgpack"] .item-icon');
     if (marketTcgPackIcon) marketTcgPackIcon.style.backgroundImage = 'var(--item-icon-tcgpack)';
 });
 
-const trainersData = { "Bea": { name: "Bea", imageUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Bea-TG25-Astral-Radiance.png" }, "Brock": { name: "Brock", imageUrl: "https://www.pokemonkaart.nl/wp-content/uploads/brocks-scouting-179-sv9-eng.png" }, "Giovanni": { name: "Giovanni", imageUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Giovannis-Charisma-204-151.jpg" } };
-const SAVE_KEY = 'blazingThunder_savedData_v1_2_1_tcg_api'; // Versie aangepast voor TCG API integratie
+const trainersData = {
+    "Bea": { name: "Bea", imageUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Bea-TG25-Astral-Radiance.png" },
+    "Brock": { name: "Brock", imageUrl: "https://www.pokemonkaart.nl/wp-content/uploads/brocks-scouting-179-sv9-eng.png" },
+    "Giovanni": { name: "Giovanni", imageUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Giovannis-Charisma-204-151.jpg" },
+    "Red": { name: "Red", imageUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Unbroken-Bonds_Red%E2%80%99s-Challenge-1.jpg" },
+    "Blue": { name: "Blue", imageUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Unified-Minds_Blue%E2%80%99s-Tactics-1.jpg" },
+    "Hop": { name: "Hop", imageUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Champions-Path_Hop.jpg" }
+};
+const SAVE_KEY = 'blazingThunder_savedData_v3.6'; // Versie verhoogd voor gold & nieuwe admin flags
 
 const typeChart = { "Normal": {"Rock": 0.5, "Ghost": 0, "Steel": 0.5}, "Fire": {"Fire": 0.5, "Water": 0.5, "Grass": 2, "Ice": 2, "Bug": 2, "Rock": 0.5, "Dragon": 0.5, "Steel": 2}, "Water": {"Fire": 2, "Water": 0.5, "Grass": 0.5, "Ground": 2, "Rock": 2, "Dragon": 0.5}, "Electric": {"Water": 2, "Electric": 0.5, "Grass": 0.5, "Ground": 0, "Flying": 2, "Dragon": 0.5}, "Grass": {"Fire": 0.5, "Water": 2, "Grass": 0.5, "Poison": 0.5, "Ground": 2, "Flying": 0.5, "Bug": 0.5, "Rock": 2, "Dragon": 0.5, "Steel": 0.5}, "Ice": {"Fire": 0.5, "Water": 0.5, "Grass": 2, "Ice": 0.5, "Ground": 2, "Flying": 2, "Dragon": 2, "Steel": 0.5}, "Fighting": {"Normal": 2, "Ice": 2, "Poison": 0.5, "Flying": 0.5, "Psychic": 0.5, "Bug": 0.5, "Rock": 2, "Ghost": 0, "Dark": 2, "Steel": 2, "Fairy": 0.5}, "Poison": {"Grass": 2, "Poison": 0.5, "Ground": 0.5, "Rock": 0.5, "Ghost": 0.5, "Steel": 0, "Fairy": 2}, "Ground": {"Fire": 2, "Electric": 2, "Grass": 0.5, "Poison": 2, "Flying": 0, "Bug": 0.5, "Rock": 2, "Steel": 2}, "Flying": {"Electric": 0.5, "Grass": 2, "Fighting": 2, "Bug": 2, "Rock": 0.5, "Steel": 0.5}, "Psychic": {"Fighting": 2, "Poison": 2, "Psychic": 0.5, "Dark": 0, "Steel": 0.5}, "Bug": {"Fire": 0.5, "Grass": 2, "Fighting": 0.5, "Poison": 0.5, "Flying": 0.5, "Psychic": 2, "Ghost": 0.5, "Dark": 2, "Steel": 0.5, "Fairy": 0.5}, "Rock": {"Fire": 2, "Ice": 2, "Fighting": 0.5, "Ground": 0.5, "Flying": 2, "Bug": 2, "Steel": 0.5}, "Ghost": {"Normal": 0, "Psychic": 2, "Ghost": 2, "Dark": 0.5}, "Dragon": {"Dragon": 2, "Steel": 0.5, "Fairy": 0}, "Steel": {"Fire": 0.5, "Water": 0.5, "Electric": 0.5, "Ice": 2, "Rock": 2, "Steel": 0.5, "Fairy": 2}, "Dark": {"Fighting": 0.5, "Psychic": 2, "Ghost": 2, "Dark": 0.5, "Fairy": 0.5}, "Fairy": {"Fire": 0.5, "Fighting": 2, "Poison": 0.5, "Dragon": 2, "Dark": 2, "Steel": 0.5} };
 const statStageMultipliers = [1/4, 2/7, 1/3, 2/5, 1/2, 2/3, 1, 1.5, 2, 2.5, 3, 3.5, 4];
@@ -3717,10 +3994,2172 @@ const pokemonPool = [
                 pokedexId: 251, name: "CELEBI", types: ["Psychic", "Grass"], hp: 170, baseStats: { attack: 100, defense: 100, speed: 100 },
                 moves: [ { name: "Psychic", type: "Psychic", accuracy: 100, maxPp: 10, power: 90, effect: {type: "stat", stat: "defense", target: "opponent", stages: -1, chance: 0.1 } }, { name: "Giga Drain", type: "Grass", accuracy: 100, maxPp: 10, power: 75, effect: {type: "heal", percentage: 0.5, target: "self"} }, { name: "Recover", type: "Normal", accuracy: 100, maxPp: 10, power: 0, effect: { type: "heal", percentage: 0.5, target: "self" }, alwaysHits: true }, { name: "Ancient Power", type: "Rock", accuracy: 100, maxPp: 5, power: 60, effect: { type: "stat_all_self", chance: 0.1, stages: 1 } } ],
                 spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/251.png", spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/251.png", evolvesToPokedexId: null
-            }
-        ];
+            },
+{
+        pokedexId: 252,
+        name: "TREECKO",
+        types: ["Grass"],
+        hp: 115,
+        baseStats: { attack: 45, defense: 35, speed: 70 },
+        moves: [
+            { name: "Pound", type: "Normal", accuracy: 100, maxPp: 35, power: 40 },
+            { name: "Leer", type: "Normal", accuracy: 100, maxPp: 30, power: 0, effect: { type: "stat", stat: "defense", target: "opponent", stages: -1 }, alwaysHits: true },
+            { name: "Absorb", type: "Grass", accuracy: 100, maxPp: 25, power: 20, effect: { type: "drain", percentage: 0.5 } }, // Drain effect niet geïmplementeerd
+            { name: "Quick Attack", type: "Normal", accuracy: 100, maxPp: 30, power: 40, priority: 1 }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/252.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/252.png",
+        evolvesToPokedexId: 253
+    },
+    {
+        pokedexId: 253,
+        name: "GROVYLE",
+        types: ["Grass"],
+        hp: 130,
+        baseStats: { attack: 65, defense: 45, speed: 95 },
+        moves: [
+            { name: "Fury Cutter", type: "Bug", accuracy: 95, maxPp: 20, power: 40 }, // Power increases with consecutive hits (niet geïmplementeerd)
+            { name: "Leaf Blade", type: "Grass", accuracy: 100, maxPp: 15, power: 90, effect: { type: "crit", chance: 0.125 } }, // High crit chance niet geïmplementeerd
+            { name: "Screech", type: "Normal", accuracy: 85, maxPp: 40, power: 0, effect: { type: "stat", stat: "defense", target: "opponent", stages: -2 } },
+            { name: "Agility", type: "Psychic", accuracy: 100, maxPp: 30, power: 0, effect: { type: "stat", stat: "speed", target: "self", stages: 2 }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/253.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/253.png",
+        evolvesToPokedexId: 254
+    },
+    {
+        pokedexId: 254,
+        name: "SCEPTILE",
+        types: ["Grass"],
+        hp: 150,
+        baseStats: { attack: 85, defense: 65, speed: 120 },
+        moves: [
+            { name: "Leaf Storm", type: "Grass", accuracy: 90, maxPp: 5, power: 130, effect: { type: "stat", stat: "attack", target: "self", stages: -2 } }, // Normaal Sp.Atk verlaging, hier Attack
+            { name: "X-Scissor", type: "Bug", accuracy: 100, maxPp: 15, power: 80 },
+            { name: "Detect", type: "Fighting", accuracy: 100, maxPp: 5, power: 0, effect: { type: "protect" }, priority: 4, alwaysHits: true }, // Detect/Protect niet geïmplementeerd
+            { name: "Dual Chop", type: "Dragon", accuracy: 90, maxPp: 15, power: 40 } // Hits twice (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/254.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/254.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 255,
+        name: "TORCHIC",
+        types: ["Fire"],
+        hp: 120,
+        baseStats: { attack: 60, defense: 40, speed: 45 },
+        moves: [
+            { name: "Scratch", type: "Normal", accuracy: 100, maxPp: 35, power: 40 },
+            { name: "Growl", type: "Normal", accuracy: 100, maxPp: 40, power: 0, effect: { type: "stat", stat: "attack", target: "opponent", stages: -1 }, alwaysHits: true },
+            { name: "Ember", type: "Fire", accuracy: 100, maxPp: 25, power: 40, effect: { type: "burn", chance: 0.1 } }, // Burn chance niet geïmplementeerd
+            { name: "Peck", type: "Flying", accuracy: 100, maxPp: 35, power: 35 }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/255.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/255.png",
+        evolvesToPokedexId: 256
+    },
+    {
+        pokedexId: 256,
+        name: "COMBUSKEN",
+        types: ["Fire", "Fighting"],
+        hp: 135,
+        baseStats: { attack: 85, defense: 60, speed: 55 },
+        moves: [
+            { name: "Double Kick", type: "Fighting", accuracy: 100, maxPp: 30, power: 30 }, // Hits twice (niet geïmplementeerd)
+            { name: "Flame Charge", type: "Fire", accuracy: 100, maxPp: 20, power: 50, effect: { type: "stat", stat: "speed", target: "self", stages: 1 } },
+            { name: "Bulk Up", type: "Fighting", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat_multi", stats: ["attack", "defense"], target: "self", stages: [1, 1] }, alwaysHits: true },
+            { name: "Quick Attack", type: "Normal", accuracy: 100, maxPp: 30, power: 40, priority: 1 }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/256.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/256.png",
+        evolvesToPokedexId: 257
+    },
+    {
+        pokedexId: 257,
+        name: "BLAZIKEN",
+        types: ["Fire", "Fighting"],
+        hp: 155,
+        baseStats: { attack: 120, defense: 70, speed: 80 },
+        moves: [
+            { name: "Blaze Kick", type: "Fire", accuracy: 90, maxPp: 10, power: 85, effect: { type: "burn_crit", burnChance: 0.1, critChance: 0.125 } }, // Burn & high crit niet geïmplementeerd
+            { name: "Sky Uppercut", type: "Fighting", accuracy: 90, maxPp: 15, power: 85 }, // Can hit Pokémon during Fly/Bounce (niet geïmplementeerd)
+            { name: "Brave Bird", type: "Flying", accuracy: 100, maxPp: 15, power: 120, effect: { type: "recoil", percentage: 0.33 } }, // Recoil niet geïmplementeerd
+            { name: "Flare Blitz", type: "Fire", accuracy: 100, maxPp: 15, power: 120, effect: { type: "recoil_burn", recoilPercentage: 0.33, burnChance: 0.1 } } // Recoil & Burn niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/257.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/257.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 258,
+        name: "MUDKIP",
+        types: ["Water"],
+        hp: 125,
+        baseStats: { attack: 70, defense: 50, speed: 40 },
+        moves: [
+            { name: "Tackle", type: "Normal", accuracy: 100, maxPp: 35, power: 40 },
+            { name: "Growl", type: "Normal", accuracy: 100, maxPp: 40, power: 0, effect: { type: "stat", stat: "attack", target: "opponent", stages: -1 }, alwaysHits: true },
+            { name: "Water Gun", type: "Water", accuracy: 100, maxPp: 25, power: 40 },
+            { name: "Mud-Slap", type: "Ground", accuracy: 100, maxPp: 10, power: 20, effect: { type: "stat", stat: "accuracy", target: "opponent", stages: -1 } }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/258.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/258.png",
+        evolvesToPokedexId: 259
+    },
+    {
+        pokedexId: 259,
+        name: "MARSHTOMP",
+        types: ["Water", "Ground"],
+        hp: 145,
+        baseStats: { attack: 85, defense: 70, speed: 50 },
+        moves: [
+            { name: "Mud Shot", type: "Ground", accuracy: 95, maxPp: 15, power: 55, effect: { type: "stat", stat: "speed", target: "opponent", stages: -1 } },
+            { name: "Water Pulse", type: "Water", accuracy: 100, maxPp: 20, power: 60, effect: { type: "confusion", chance: 0.2 } }, // Confusion niet geïmplementeerd
+            { name: "Rock Throw", type: "Rock", accuracy: 90, maxPp: 15, power: 50 },
+            { name: "Take Down", type: "Normal", accuracy: 85, maxPp: 20, power: 90, effect: { type: "recoil", percentage: 0.25 } } // Recoil niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/259.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/259.png",
+        evolvesToPokedexId: 260
+    },
+    {
+        pokedexId: 260,
+        name: "SWAMPERT",
+        types: ["Water", "Ground"],
+        hp: 165,
+        baseStats: { attack: 110, defense: 90, speed: 60 },
+        moves: [
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 },
+            { name: "Waterfall", type: "Water", accuracy: 100, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } }, // Flinch niet geïmplementeerd
+            { name: "Hammer Arm", type: "Fighting", accuracy: 90, maxPp: 10, power: 100, effect: { type: "stat", stat: "speed", target: "self", stages: -1 } },
+            { name: "Rock Slide", type: "Rock", accuracy: 90, maxPp: 10, power: 75, effect: { type: "flinch", chance: 0.3 } } // Flinch niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/260.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/260.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 261,
+        name: "POOCHYENA",
+        types: ["Dark"],
+        hp: 110,
+        baseStats: { attack: 55, defense: 35, speed: 35 },
+        moves: [
+            { name: "Tackle", type: "Normal", accuracy: 100, maxPp: 35, power: 40 },
+            { name: "Howl", type: "Normal", accuracy: 100, maxPp: 40, power: 0, effect: { type: "stat", stat: "attack", target: "self", stages: 1 }, alwaysHits: true },
+            { name: "Sand Attack", type: "Ground", accuracy: 100, maxPp: 15, power: 0, effect: { type: "stat", stat: "accuracy", target: "opponent", stages: -1 } },
+            { name: "Bite", type: "Dark", accuracy: 100, maxPp: 25, power: 60, effect: { type: "flinch", chance: 0.3 } } // Flinch niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/261.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/261.png",
+        evolvesToPokedexId: 262
+    },
+    {
+        pokedexId: 262,
+        name: "MIGHTYENA",
+        types: ["Dark"],
+        hp: 145,
+        baseStats: { attack: 90, defense: 70, speed: 70 },
+        moves: [
+            { name: "Crunch", type: "Dark", accuracy: 100, maxPp: 15, power: 80, effect: { type: "stat_chance", stat: "defense", target: "opponent", stages: -1, chance: 0.2 } }, // Def verlaging kans niet geïmplementeerd
+            { name: "Take Down", type: "Normal", accuracy: 85, maxPp: 20, power: 90, effect: { type: "recoil", percentage: 0.25 } }, // Recoil niet geïmplementeerd
+            { name: "Scary Face", type: "Normal", accuracy: 100, maxPp: 10, power: 0, effect: { type: "stat", stat: "speed", target: "opponent", stages: -2 }, alwaysHits: true },
+            { name: "Sucker Punch", type: "Dark", accuracy: 100, maxPp: 5, power: 70, priority: 1 } // Werkt alleen als tegenstander aanvallende zet kiest (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/262.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/262.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 263,
+        name: "ZIGZAGOON",
+        types: ["Normal"],
+        hp: 112,
+        baseStats: { attack: 30, defense: 41, speed: 60 },
+        moves: [
+            { name: "Tackle", type: "Normal", accuracy: 100, maxPp: 35, power: 40 },
+            { name: "Growl", type: "Normal", accuracy: 100, maxPp: 40, power: 0, effect: { type: "stat", stat: "attack", target: "opponent", stages: -1 }, alwaysHits: true },
+            { name: "Tail Whip", type: "Normal", accuracy: 100, maxPp: 30, power: 0, effect: { type: "stat", stat: "defense", target: "opponent", stages: -1 }, alwaysHits: true },
+            { name: "Headbutt", type: "Normal", accuracy: 100, maxPp: 15, power: 70, effect: { type: "flinch", chance: 0.3 } } // Flinch niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/263.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/263.png",
+        evolvesToPokedexId: 264
+    },
+    {
+        pokedexId: 264,
+        name: "LINOONE",
+        types: ["Normal"],
+        hp: 152,
+        baseStats: { attack: 70, defense: 61, speed: 100 },
+        moves: [
+            { name: "Slash", type: "Normal", accuracy: 100, maxPp: 20, power: 70, effect: { type: "crit", chance: 0.125 } }, // High crit niet geïmplementeerd
+            { name: "Belly Drum", type: "Normal", accuracy: 100, maxPp: 10, power: 0, effect: { type: "belly_drum" } }, // Max attack, halve HP (niet geïmplementeerd)
+            { name: "Pin Missile", type: "Bug", accuracy: 95, maxPp: 20, power: 25 }, // Hits 2-5 times (niet geïmplementeerd)
+            { name: "Rest", type: "Psychic", accuracy: 100, maxPp: 10, power: 0, effect: { type: "rest" } } // Herstelt HP, slaapt 2 beurten (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/264.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/264.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 265,
+        name: "WURMPLE",
+        types: ["Bug"],
+        hp: 120,
+        baseStats: { attack: 45, defense: 35, speed: 20 },
+        moves: [
+            { name: "Tackle", type: "Normal", accuracy: 100, maxPp: 35, power: 40 },
+            { name: "String Shot", type: "Bug", accuracy: 95, maxPp: 40, power: 0, effect: { type: "stat", stat: "speed", target: "opponent", stages: -2 } },
+            { name: "Poison Sting", type: "Poison", accuracy: 100, maxPp: 35, power: 15, effect: { type: "poison", chance: 0.3 } }, // Poison kans niet geïmplementeerd
+            { name: "Bug Bite", type: "Bug", accuracy: 100, maxPp: 20, power: 60 } // Effect eet bes (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/265.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/265.png",
+        evolvesToPokedexId: 266 // Kan ook 268 zijn, afhankelijk van persoonlijkheidswaarde (niet modelleerbaar hier)
+    },
+    {
+        pokedexId: 266,
+        name: "SILCOON",
+        types: ["Bug"],
+        hp: 125,
+        baseStats: { attack: 35, defense: 55, speed: 15 },
+        moves: [
+            { name: "Harden", type: "Normal", accuracy: 100, maxPp: 30, power: 0, effect: { type: "stat", stat: "defense", target: "self", stages: 1 }, alwaysHits: true },
+            { name: "Tackle", type: "Normal", accuracy: 100, maxPp: 35, power: 40 }, // Placeholder, leert weinig
+            { name: "Poison Sting", type: "Poison", accuracy: 100, maxPp: 35, power: 15, effect: { type: "poison", chance: 0.3 } }, // Placeholder
+            { name: "Bug Bite", type: "Bug", accuracy: 100, maxPp: 20, power: 60 } // Placeholder
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/266.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/266.png",
+        evolvesToPokedexId: 267
+    },
+    {
+        pokedexId: 267,
+        name: "BEAUTIFLY",
+        types: ["Bug", "Flying"],
+        hp: 135,
+        baseStats: { attack: 70, defense: 50, speed: 65 }, // Normaal hoge Sp. Atk
+        moves: [
+            { name: "Absorb", type: "Grass", accuracy: 100, maxPp: 25, power: 20, effect: { type: "drain", percentage: 0.5 } }, // Drain niet geïmplementeerd
+            { name: "Gust", type: "Flying", accuracy: 100, maxPp: 35, power: 40 },
+            { name: "Stun Spore", type: "Grass", accuracy: 75, maxPp: 30, power: 0, effect: { type: "paralysis" } }, // Paralysis niet geïmplementeerd
+            { name: "Silver Wind", type: "Bug", accuracy: 100, maxPp: 5, power: 60, effect: { type: "stat_all_self_chance", chance: 0.1 } } // Alle stats +1 kans (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/267.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/267.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 268,
+        name: "CASCOON",
+        types: ["Bug"],
+        hp: 125,
+        baseStats: { attack: 35, defense: 55, speed: 15 },
+        moves: [
+            { name: "Harden", type: "Normal", accuracy: 100, maxPp: 30, power: 0, effect: { type: "stat", stat: "defense", target: "self", stages: 1 }, alwaysHits: true },
+            { name: "Tackle", type: "Normal", accuracy: 100, maxPp: 35, power: 40 }, // Placeholder
+            { name: "Poison Sting", type: "Poison", accuracy: 100, maxPp: 35, power: 15, effect: { type: "poison", chance: 0.3 } }, // Placeholder
+            { name: "Bug Bite", type: "Bug", accuracy: 100, maxPp: 20, power: 60 } // Placeholder
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/268.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/268.png",
+        evolvesToPokedexId: 269
+    },
+    {
+        pokedexId: 269,
+        name: "DUSTOX",
+        types: ["Bug", "Poison"],
+        hp: 135,
+        baseStats: { attack: 50, defense: 70, speed: 65 }, // Normaal hoge Sp. Def
+        moves: [
+            { name: "Confusion", type: "Psychic", accuracy: 100, maxPp: 25, power: 50, effect: { type: "confusion", chance: 0.1 } }, // Confusion niet geïmplementeerd
+            { name: "Poison Fang", type: "Poison", accuracy: 100, maxPp: 15, power: 50, effect: { type: "toxic", chance: 0.5 } }, // Badly poison kans (niet geïmplementeerd)
+            { name: "Protect", type: "Normal", accuracy: 100, maxPp: 10, power: 0, effect: { type: "protect" }, priority: 4, alwaysHits: true }, // Protect niet geïmplementeerd
+            { name: "Moonlight", type: "Fairy", accuracy: 100, maxPp: 5, power: 0, effect: { type: "heal_percentage", percentage: 0.5 } } // Heal niet geïmplementeerd (Fairy type pas later, was Normal)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/269.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/269.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 270,
+        name: "LOTAD",
+        types: ["Water", "Grass"],
+        hp: 115,
+        baseStats: { attack: 30, defense: 30, speed: 30 },
+        moves: [
+            { name: "Astonish", type: "Ghost", accuracy: 100, maxPp: 15, power: 30, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd
+            { name: "Growl", type: "Normal", accuracy: 100, maxPp: 40, power: 0, effect: { type: "stat", stat: "attack", target: "opponent", stages: -1 }, alwaysHits: true },
+            { name: "Absorb", type: "Grass", accuracy: 100, maxPp: 25, power: 20, effect: { type: "drain", percentage: 0.5 } }, // Drain niet geïmplementeerd
+            { name: "Bubble", type: "Water", accuracy: 100, maxPp: 30, power: 40, effect: { type: "stat_chance", stat: "speed", target: "opponent", stages: -1, chance: 0.1 } } // Speed verlaging kans (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/270.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/270.png",
+        evolvesToPokedexId: 271
+    },
+    {
+        pokedexId: 271,
+        name: "LOMBRE",
+        types: ["Water", "Grass"],
+        hp: 135,
+        baseStats: { attack: 50, defense: 50, speed: 50 },
+        moves: [
+            { name: "Fake Out", type: "Normal", accuracy: 100, maxPp: 10, power: 40, priority: 3, effect: { type: "flinch_first_turn_only" } }, // Flinch (alleen eerste beurt) niet geïmplementeerd
+            { name: "Water Gun", type: "Water", accuracy: 100, maxPp: 25, power: 40 },
+            { name: "Mega Drain", type: "Grass", accuracy: 100, maxPp: 15, power: 40, effect: { type: "drain", percentage: 0.5 } }, // Drain niet geïmplementeerd
+            { name: "Bubble Beam", type: "Water", accuracy: 100, maxPp: 20, power: 65, effect: { type: "stat_chance", stat: "speed", target: "opponent", stages: -1, chance: 0.1 } } // Speed verlaging kans (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/271.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/271.png",
+        evolvesToPokedexId: 272
+    },
+    {
+        pokedexId: 272,
+        name: "LUDICOLO",
+        types: ["Water", "Grass"],
+        hp: 155,
+        baseStats: { attack: 70, defense: 70, speed: 70 }, // Normaal hogere Sp. stats
+        moves: [
+            { name: "Giga Drain", type: "Grass", accuracy: 100, maxPp: 10, power: 75, effect: { type: "drain", percentage: 0.5 } }, // Drain niet geïmplementeerd
+            { name: "Surf", type: "Water", accuracy: 100, maxPp: 15, power: 90 },
+            { name: "Rain Dance", type: "Water", accuracy: 100, maxPp: 5, power: 0, effect: { type: "weather", weather: "rain" } }, // Weather niet geïmplementeerd
+            { name: "Zen Headbutt", type: "Psychic", accuracy: 90, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } } // Flinch niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/272.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/272.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 273,
+        name: "SEEDOT",
+        types: ["Grass"],
+        hp: 115,
+        baseStats: { attack: 40, defense: 50, speed: 30 },
+        moves: [
+            { name: "Bide", type: "Normal", accuracy: 100, maxPp: 10, power: 0 }, // Wacht 2 beurten, geeft dubbele schade terug (niet geïmplementeerd)
+            { name: "Harden", type: "Normal", accuracy: 100, maxPp: 30, power: 0, effect: { type: "stat", stat: "defense", target: "self", stages: 1 }, alwaysHits: true },
+            { name: "Growth", type: "Normal", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: "attack", target: "self", stages: 1 }, alwaysHits: true }, // Normaal Sp. Atk en Atk, hier alleen Atk
+            { name: "Bullet Seed", type: "Grass", accuracy: 100, maxPp: 30, power: 25 } // Hits 2-5 times (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/273.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/273.png",
+        evolvesToPokedexId: 274
+    },
+    {
+        pokedexId: 274,
+        name: "NUZLEAF",
+        types: ["Grass", "Dark"],
+        hp: 145,
+        baseStats: { attack: 70, defense: 40, speed: 60 },
+        moves: [
+            { name: "Fake Out", type: "Normal", accuracy: 100, maxPp: 10, power: 40, priority: 3, effect: { type: "flinch_first_turn_only" } }, // Flinch (alleen eerste beurt) niet geïmplementeerd
+            { name: "Razor Leaf", type: "Grass", accuracy: 95, maxPp: 25, power: 55, effect: { type: "crit", chance: 0.125 } }, // High crit niet geïmplementeerd
+            { name: "Feint Attack", type: "Dark", accuracy: 100, maxPp: 20, power: 60, alwaysHits: true }, // Kan niet missen, ook niet door acc/eva changes
+            { name: "Swagger", type: "Normal", accuracy: 85, maxPp: 15, power: 0, effect: { type: "swagger" } } // Verwart tegenstander, verhoogt Attack +2 (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/274.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/274.png",
+        evolvesToPokedexId: 275
+    },
+    {
+        pokedexId: 275,
+        name: "SHIFTRY",
+        types: ["Grass", "Dark"],
+        hp: 160,
+        baseStats: { attack: 100, defense: 60, speed: 80 },
+        moves: [
+            { name: "Leaf Blade", type: "Grass", accuracy: 100, maxPp: 15, power: 90, effect: { type: "crit", chance: 0.125 } }, // High crit niet geïmplementeerd
+            { name: "Sucker Punch", type: "Dark", accuracy: 100, maxPp: 5, power: 70, priority: 1 }, // Werkt alleen als tegenstander aanvallende zet kiest (niet geïmplementeerd)
+            { name: "Swords Dance", type: "Normal", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: "attack", target: "self", stages: 2 }, alwaysHits: true },
+            { name: "Hurricane", type: "Flying", accuracy: 70, maxPp: 10, power: 110, effect: { type: "confusion", chance: 0.3 } } // Confusion niet geïmplementeerd; kan raken in Fly/Bounce
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/275.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/275.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 276,
+        name: "TAILLOW",
+        types: ["Normal", "Flying"],
+        hp: 115,
+        baseStats: { attack: 55, defense: 30, speed: 85 },
+        moves: [
+            { name: "Peck", type: "Flying", accuracy: 100, maxPp: 35, power: 35 },
+            { name: "Growl", type: "Normal", accuracy: 100, maxPp: 40, power: 0, effect: { type: "stat", stat: "attack", target: "opponent", stages: -1 }, alwaysHits: true },
+            { name: "Quick Attack", type: "Normal", accuracy: 100, maxPp: 30, power: 40, priority: 1 },
+            { name: "Wing Attack", type: "Flying", accuracy: 100, maxPp: 35, power: 60 }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/276.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/276.png",
+        evolvesToPokedexId: 277
+    },
+    {
+        pokedexId: 277,
+        name: "SWELLOW",
+        types: ["Normal", "Flying"],
+        hp: 135,
+        baseStats: { attack: 85, defense: 60, speed: 125 },
+        moves: [
+            { name: "Aerial Ace", type: "Flying", accuracy: 100, maxPp: 20, power: 60, alwaysHits: true }, // Kan niet missen
+            { name: "Facade", type: "Normal", accuracy: 100, maxPp: 20, power: 70 }, // Power dubbel bij status (niet geïmplementeerd)
+            { name: "Brave Bird", type: "Flying", accuracy: 100, maxPp: 15, power: 120, effect: { type: "recoil", percentage: 0.33 } }, // Recoil niet geïmplementeerd
+            { name: "Agility", type: "Psychic", accuracy: 100, maxPp: 30, power: 0, effect: { type: "stat", stat: "speed", target: "self", stages: 2 }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/277.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/277.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 278,
+        name: "WINGULL",
+        types: ["Water", "Flying"],
+        hp: 115,
+        baseStats: { attack: 30, defense: 30, speed: 85 },
+        moves: [
+            { name: "Water Gun", type: "Water", accuracy: 100, maxPp: 25, power: 40 },
+            { name: "Growl", type: "Normal", accuracy: 100, maxPp: 40, power: 0, effect: { type: "stat", stat: "attack", target: "opponent", stages: -1 }, alwaysHits: true },
+            { name: "Wing Attack", type: "Flying", accuracy: 100, maxPp: 35, power: 60 },
+            { name: "Mist", type: "Ice", accuracy: 100, maxPp: 30, power: 0, effect: { type: "mist" } } // Voorkomt stat verlagingen door tegenstander (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/278.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/278.png",
+        evolvesToPokedexId: 279
+    },
+    {
+        pokedexId: 279,
+        name: "PELIPPER",
+        types: ["Water", "Flying"],
+        hp: 135,
+        baseStats: { attack: 50, defense: 100, speed: 65 },
+        moves: [
+            { name: "Scald", type: "Water", accuracy: 100, maxPp: 15, power: 80, effect: { type: "burn", chance: 0.3 } }, // Burn kans niet geïmplementeerd
+            { name: "Hurricane", type: "Flying", accuracy: 70, maxPp: 10, power: 110, effect: { type: "confusion", chance: 0.3 } }, // Confusion niet geïmplementeerd
+            { name: "Protect", type: "Normal", accuracy: 100, maxPp: 10, power: 0, effect: { type: "protect" }, priority: 4, alwaysHits: true }, // Protect niet geïmplementeerd
+            { name: "Roost", type: "Flying", accuracy: 100, maxPp: 10, power: 0, effect: { type: "heal_percentage_lose_flying", percentage: 0.5 } } // Heal, verliest Flying type voor 1 beurt (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/279.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/279.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 280,
+        name: "RALTS",
+        types: ["Psychic", "Fairy"], // Fairy type later toegevoegd
+        hp: 100,
+        baseStats: { attack: 25, defense: 25, speed: 40 },
+        moves: [
+            { name: "Growl", type: "Normal", accuracy: 100, maxPp: 40, power: 0, effect: { type: "stat", stat: "attack", target: "opponent", stages: -1 }, alwaysHits: true },
+            { name: "Confusion", type: "Psychic", accuracy: 100, maxPp: 25, power: 50, effect: { type: "confusion", chance: 0.1 } }, // Confusion niet geïmplementeerd
+            { name: "Double Team", type: "Normal", accuracy: 100, maxPp: 15, power: 0, effect: { type: "stat", stat: "evasion", target: "self", stages: 1 }, alwaysHits: true }, // Evasion niet in baseStats
+            { name: "Teleport", type: "Psychic", accuracy: 100, maxPp: 20, power: 0, effect: { type: "flee" } } // Vlucht uit wilde gevechten (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/280.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/280.png",
+        evolvesToPokedexId: 281
+    },
+    {
+        pokedexId: 281,
+        name: "KIRLIA",
+        types: ["Psychic", "Fairy"],
+        hp: 112,
+        baseStats: { attack: 35, defense: 35, speed: 50 },
+        moves: [
+            { name: "Psybeam", type: "Psychic", accuracy: 100, maxPp: 20, power: 65, effect: { type: "confusion", chance: 0.1 } }, // Confusion niet geïmplementeerd
+            { name: "Magical Leaf", type: "Grass", accuracy: 100, maxPp: 20, power: 60, alwaysHits: true }, // Kan niet missen
+            { name: "Calm Mind", type: "Psychic", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat_multi", stats: ["attack", "defense"], target: "self", stages: [1, 1] }, alwaysHits: true }, // Normaal Sp.Atk/Sp.Def, hier Atk/Def
+            { name: "Draining Kiss", type: "Fairy", accuracy: 100, maxPp: 10, power: 50, effect: { type: "drain", percentage: 0.75 } } // Drain niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/281.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/281.png",
+        evolvesToPokedexId: 282 // Kan ook 475 (Gallade) zijn met Dawn Stone (M), niet modelleerbaar hier
+    },
+    {
+        pokedexId: 282,
+        name: "GARDEVOIR",
+        types: ["Psychic", "Fairy"],
+        hp: 142,
+        baseStats: { attack: 65, defense: 65, speed: 80 }, // Normaal hoge Sp. stats
+        moves: [
+            { name: "Psychic", type: "Psychic", accuracy: 100, maxPp: 10, power: 90, effect: { type: "stat_chance", stat: "defense", target: "opponent", stages: -1, chance: 0.1 } }, // Normaal Sp.Def verlaging
+            { name: "Moonblast", type: "Fairy", accuracy: 100, maxPp: 15, power: 95, effect: { type: "stat_chance", stat: "attack", target: "opponent", stages: -1, chance: 0.3 } }, // Normaal Sp.Atk verlaging
+            { name: "Wish", type: "Normal", accuracy: 100, maxPp: 10, power: 0, effect: { type: "wish" } }, // Heal volgende beurt (niet geïmplementeerd)
+            { name: "Shadow Ball", type: "Ghost", accuracy: 100, maxPp: 15, power: 80, effect: { type: "stat_chance", stat: "defense", target: "opponent", stages: -1, chance: 0.2 } } // Normaal Sp.Def verlaging
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/282.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/282.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 283,
+        name: "SURSKIT",
+        types: ["Bug", "Water"],
+        hp: 115,
+        baseStats: { attack: 30, defense: 32, speed: 65 },
+        moves: [
+            { name: "Bubble", type: "Water", accuracy: 100, maxPp: 30, power: 40, effect: { type: "stat_chance", stat: "speed", target: "opponent", stages: -1, chance: 0.1 } }, // Speed verlaging kans
+            { name: "Quick Attack", type: "Normal", accuracy: 100, maxPp: 30, power: 40, priority: 1 },
+            { name: "Sweet Scent", type: "Normal", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: "evasion", target: "opponent", stages: -1 } }, // Evasion niet in baseStats
+            { name: "Water Sport", type: "Water", accuracy: 100, maxPp: 15, power: 0, effect: { type: "field_effect_weaken_fire" } } // Verzwakt Fire moves (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/283.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/283.png",
+        evolvesToPokedexId: 284
+    },
+    {
+        pokedexId: 284,
+        name: "MASQUERAIN",
+        types: ["Bug", "Flying"],
+        hp: 145,
+        baseStats: { attack: 60, defense: 62, speed: 80 }, // Normaal hogere Sp. stats
+        moves: [
+            { name: "Air Slash", type: "Flying", accuracy: 95, maxPp: 15, power: 75, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd
+            { name: "Bug Buzz", type: "Bug", accuracy: 100, maxPp: 10, power: 90, effect: { type: "stat_chance", stat: "defense", target: "opponent", stages: -1, chance: 0.1 } }, // Normaal Sp.Def verlaging
+            { name: "Quiver Dance", type: "Bug", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat_multi", stats: ["attack", "defense", "speed"], target: "self", stages: [1, 1, 1] }, alwaysHits: true }, // Normaal Sp.Atk, Sp.Def, Speed
+            { name: "Stun Spore", type: "Grass", accuracy: 75, maxPp: 30, power: 0, effect: { type: "paralysis" } } // Paralysis niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/284.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/284.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 285,
+        name: "SHROOMISH",
+        types: ["Grass"],
+        hp: 135,
+        baseStats: { attack: 40, defense: 60, speed: 35 },
+        moves: [
+            { name: "Absorb", type: "Grass", accuracy: 100, maxPp: 25, power: 20, effect: { type: "drain", percentage: 0.5 } }, // Drain niet geïmplementeerd
+            { name: "Tackle", type: "Normal", accuracy: 100, maxPp: 35, power: 40 },
+            { name: "Stun Spore", type: "Grass", accuracy: 75, maxPp: 30, power: 0, effect: { type: "paralysis" } }, // Paralysis niet geïmplementeerd
+            { name: "Leech Seed", type: "Grass", accuracy: 90, maxPp: 10, power: 0, effect: { type: "leech_seed" } } // Leech Seed niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/285.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/285.png",
+        evolvesToPokedexId: 286
+    },
+    {
+        pokedexId: 286,
+        name: "BRELOOM",
+        types: ["Grass", "Fighting"],
+        hp: 135,
+        baseStats: { attack: 130, defense: 80, speed: 70 },
+        moves: [
+            { name: "Mach Punch", type: "Fighting", accuracy: 100, maxPp: 30, power: 40, priority: 1 },
+            { name: "Seed Bomb", type: "Grass", accuracy: 100, maxPp: 15, power: 80 },
+            { name: "Spore", type: "Grass", accuracy: 100, maxPp: 15, power: 0, effect: { type: "sleep" } }, // Sleep niet geïmplementeerd
+            { name: "Focus Punch", type: "Fighting", accuracy: 100, maxPp: 20, power: 150, priority: -3 } // Faalt als geraakt voor gebruik (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/286.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/286.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 287,
+        name: "SLAKOTH",
+        types: ["Normal"],
+        hp: 135,
+        baseStats: { attack: 60, defense: 60, speed: 30 },
+        moves: [
+            { name: "Scratch", type: "Normal", accuracy: 100, maxPp: 35, power: 40 },
+            { name: "Yawn", type: "Normal", accuracy: 100, maxPp: 10, power: 0, effect: { type: "yawn" } }, // Maakt slaperig, volgende beurt slaap (niet geïmplementeerd)
+            { name: "Encore", type: "Normal", accuracy: 100, maxPp: 5, power: 0, effect: { type: "encore" } }, // Tegenstander herhaalt laatste zet (niet geïmplementeerd)
+            { name: "Slack Off", type: "Normal", accuracy: 100, maxPp: 10, power: 0, effect: { type: "heal_percentage", percentage: 0.5 } } // Heal niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/287.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/287.png",
+        evolvesToPokedexId: 288
+    },
+    {
+        pokedexId: 288,
+        name: "VIGOROTH",
+        types: ["Normal"],
+        hp: 155,
+        baseStats: { attack: 80, defense: 80, speed: 90 },
+        moves: [
+            { name: "Slash", type: "Normal", accuracy: 100, maxPp: 20, power: 70, effect: { type: "crit", chance: 0.125 } }, // High crit niet geïmplementeerd
+            { name: "Focus Energy", type: "Normal", accuracy: 100, maxPp: 30, power: 0, effect: { type: "focus_energy" } }, // Verhoogt crit kans (niet geïmplementeerd)
+            { name: "Reversal", type: "Fighting", accuracy: 100, maxPp: 15, power: 0 }, // Power afhankelijk van lage HP (niet geïmplementeerd)
+            { name: "Chip Away", type: "Normal", accuracy: 100, maxPp: 20, power: 70 } // Negeert stat changes tegenstander (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/288.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/288.png",
+        evolvesToPokedexId: 289
+    },
+    {
+        pokedexId: 289,
+        name: "SLAKING",
+        types: ["Normal"],
+        hp: 200, // Hoogste HP
+        baseStats: { attack: 160, defense: 100, speed: 100 }, // Truant ability (valt om de beurt aan) niet modelleerbaar hier
+        moves: [
+            { name: "Giga Impact", type: "Normal", accuracy: 90, maxPp: 5, power: 150, effect: { type: "recharge" } }, // Moet beurt opladen na gebruik (niet geïmplementeerd)
+            { name: "Hammer Arm", type: "Fighting", accuracy: 90, maxPp: 10, power: 100, effect: { type: "stat", stat: "speed", target: "self", stages: -1 } },
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 },
+            { name: "Play Rough", type: "Fairy", accuracy: 90, maxPp: 10, power: 90, effect: { type: "stat_chance", stat: "attack", target: "opponent", stages: -1, chance: 0.1 } }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/289.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/289.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 290,
+        name: "NINCADA",
+        types: ["Bug", "Ground"],
+        hp: 105,
+        baseStats: { attack: 45, defense: 90, speed: 40 },
+        moves: [
+            { name: "Scratch", type: "Normal", accuracy: 100, maxPp: 35, power: 40 },
+            { name: "Harden", type: "Normal", accuracy: 100, maxPp: 30, power: 0, effect: { type: "stat", stat: "defense", target: "self", stages: 1 }, alwaysHits: true },
+            { name: "Leech Life", type: "Bug", accuracy: 100, maxPp: 10, power: 80, effect: { type: "drain", percentage: 0.5 } }, // Drain niet geïmplementeerd (was 20 power, 15pp)
+            { name: "Dig", type: "Ground", accuracy: 100, maxPp: 10, power: 80 } // Twee-beurten aanval (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/290.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/290.png",
+        evolvesToPokedexId: 291 // Plus Shedinja (292) onder speciale condities
+    },
+    {
+        pokedexId: 291,
+        name: "NINJASK",
+        types: ["Bug", "Flying"],
+        hp: 136,
+        baseStats: { attack: 90, defense: 45, speed: 160 }, // Speed Boost ability niet modelleerbaar
+        moves: [
+            { name: "X-Scissor", type: "Bug", accuracy: 100, maxPp: 15, power: 80 },
+            { name: "Aerial Ace", type: "Flying", accuracy: 100, maxPp: 20, power: 60, alwaysHits: true },
+            { name: "Swords Dance", type: "Normal", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: "attack", target: "self", stages: 2 }, alwaysHits: true },
+            { name: "Baton Pass", type: "Normal", accuracy: 100, maxPp: 40, power: 0, effect: { type: "baton_pass" } } // Geeft stat boosts door (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/291.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/291.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 292,
+        name: "SHEDINJA",
+        types: ["Bug", "Ghost"],
+        hp: 30, // Altijd 1 HP in game (Wonder Guard ability), hier geschaald voor consistentie
+        baseStats: { attack: 90, defense: 45, speed: 40 },
+        moves: [
+            { name: "Shadow Claw", type: "Ghost", accuracy: 100, maxPp: 15, power: 70, effect: { type: "crit", chance: 0.125 } }, // High crit
+            { name: "Phantom Force", type: "Ghost", accuracy: 100, maxPp: 10, power: 90 }, // Twee-beurten aanval, ontwijkt (niet geïmplementeerd)
+            { name: "Confuse Ray", type: "Ghost", accuracy: 100, maxPp: 10, power: 0, effect: { type: "confusion", chance: 1.0 } }, // Confusion
+            { name: "Grudge", type: "Ghost", accuracy: 100, maxPp: 5, power: 0, effect: { type: "grudge" } } // PP van K.O. zet naar 0 (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/292.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/292.png",
+        evolvesToPokedexId: null // Wordt verkregen bij evolutie Nincada, evolueert zelf niet
+    },
+    {
+        pokedexId: 293,
+        name: "WHISMUR",
+        types: ["Normal"],
+        hp: 140,
+        baseStats: { attack: 51, defense: 23, speed: 28 },
+        moves: [
+            { name: "Pound", type: "Normal", accuracy: 100, maxPp: 35, power: 40 },
+            { name: "Uproar", type: "Normal", accuracy: 100, maxPp: 10, power: 90 }, // Duurt 3 beurten, voorkomt slaap (niet geïmplementeerd)
+            { name: "Astonish", type: "Ghost", accuracy: 100, maxPp: 15, power: 30, effect: { type: "flinch", chance: 0.3 } }, // Flinch
+            { name: "Howl", type: "Normal", accuracy: 100, maxPp: 40, power: 0, effect: { type: "stat", stat: "attack", target: "self", stages: 1 }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/293.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/293.png",
+        evolvesToPokedexId: 294
+    },
+    {
+        pokedexId: 294,
+        name: "LOUDRED",
+        types: ["Normal"],
+        hp: 158,
+        baseStats: { attack: 71, defense: 43, speed: 48 },
+        moves: [
+            { name: "Stomp", type: "Normal", accuracy: 100, maxPp: 20, power: 65, effect: { type: "flinch", chance: 0.3 } }, // Flinch
+            { name: "Bite", type: "Dark", accuracy: 100, maxPp: 25, power: 60, effect: { type: "flinch", chance: 0.3 } }, // Flinch
+            { name: "Screech", type: "Normal", accuracy: 85, maxPp: 40, power: 0, effect: { type: "stat", stat: "defense", target: "opponent", stages: -2 } },
+            { name: "Hyper Voice", type: "Normal", accuracy: 100, maxPp: 10, power: 90 } // Raakt door Substitute (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/294.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/294.png",
+        evolvesToPokedexId: 295
+    },
+    {
+        pokedexId: 295,
+        name: "EXPLOUD",
+        types: ["Normal"],
+        hp: 170,
+        baseStats: { attack: 91, defense: 63, speed: 68 },
+        moves: [
+            { name: "Boomburst", type: "Normal", accuracy: 100, maxPp: 10, power: 140 }, // Raakt alle Pokémon, ook door Substitute
+            { name: "Crunch", type: "Dark", accuracy: 100, maxPp: 15, power: 80, effect: { type: "stat_chance", stat: "defense", target: "opponent", stages: -1, chance: 0.2 } }, // Def verlaging kans
+            { name: "Ice Fang", type: "Ice", accuracy: 95, maxPp: 15, power: 65, effect: { type: "flinch_freeze", flinchChance: 0.1, freezeChance: 0.1 } }, // Flinch of Freeze kans
+            { name: "Fire Fang", type: "Fire", accuracy: 95, maxPp: 15, power: 65, effect: { type: "flinch_burn", flinchChance: 0.1, burnChance: 0.1 } } // Flinch of Burn kans
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/295.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/295.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 296,
+        name: "MAKUHITA",
+        types: ["Fighting"],
+        hp: 148,
+        baseStats: { attack: 60, defense: 30, speed: 25 },
+        moves: [
+            { name: "Tackle", type: "Normal", accuracy: 100, maxPp: 35, power: 40 },
+            { name: "Arm Thrust", type: "Fighting", accuracy: 100, maxPp: 20, power: 15 }, // Hits 2-5 times
+            { name: "Sand Attack", type: "Ground", accuracy: 100, maxPp: 15, power: 0, effect: { type: "stat", stat: "accuracy", target: "opponent", stages: -1 } },
+            { name: "Fake Out", type: "Normal", accuracy: 100, maxPp: 10, power: 40, priority: 3, effect: { type: "flinch_first_turn_only" } } // Flinch (alleen eerste beurt)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/296.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/296.png",
+        evolvesToPokedexId: 297
+    },
+    {
+        pokedexId: 297,
+        name: "HARIYAMA",
+        types: ["Fighting"],
+        hp: 195, // Zeer hoge HP
+        baseStats: { attack: 120, defense: 60, speed: 50 },
+        moves: [
+            { name: "Close Combat", type: "Fighting", accuracy: 100, maxPp: 5, power: 120, effect: { type: "stat_self_multi", stats: ["defense"], target: "self", stages: [-1] } }, // Normaal Def en Sp.Def -1
+            { name: "Knock Off", type: "Dark", accuracy: 100, maxPp: 20, power: 65 }, // Power +50% als item verwijderd (niet geïmplementeerd)
+            { name: "Bullet Punch", type: "Steel", accuracy: 100, maxPp: 30, power: 40, priority: 1 },
+            { name: "Heavy Slam", type: "Steel", accuracy: 100, maxPp: 10, power: 0 } // Power afhankelijk van gewichtsverschil (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/297.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/297.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 298,
+        name: "AZURILL",
+        types: ["Normal", "Fairy"], // Was Normal pre-Gen VI
+        hp: 125,
+        baseStats: { attack: 20, defense: 40, speed: 20 }, // Baby Pokémon
+        moves: [
+            { name: "Splash", type: "Normal", accuracy: 100, maxPp: 40, power: 0 }, // Doet niks
+            { name: "Water Gun", type: "Water", accuracy: 100, maxPp: 25, power: 40 },
+            { name: "Tail Whip", type: "Normal", accuracy: 100, maxPp: 30, power: 0, effect: { type: "stat", stat: "defense", target: "opponent", stages: -1 }, alwaysHits: true },
+            { name: "Bubble", type: "Water", accuracy: 100, maxPp: 30, power: 40, effect: { type: "stat_chance", stat: "speed", target: "opponent", stages: -1, chance: 0.1 } }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/298.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/298.png",
+        evolvesToPokedexId: 183 // Marill
+    },
+    {
+        pokedexId: 299,
+        name: "NOSEPASS",
+        types: ["Rock"],
+        hp: 105,
+        baseStats: { attack: 45, defense: 135, speed: 30 }, // Hoge Defense
+        moves: [
+            { name: "Tackle", type: "Normal", accuracy: 100, maxPp: 35, power: 40 },
+            { name: "Harden", type: "Normal", accuracy: 100, maxPp: 30, power: 0, effect: { type: "stat", stat: "defense", target: "self", stages: 1 }, alwaysHits: true },
+            { name: "Rock Throw", type: "Rock", accuracy: 90, maxPp: 15, power: 50 },
+            { name: "Thunder Wave", type: "Electric", accuracy: 90, maxPp: 20, power: 0, effect: { type: "paralysis" } } // Paralysis
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/299.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/299.png",
+        evolvesToPokedexId: 476 // Probopass
+    },
+    {
+        pokedexId: 300,
+        name: "SKITTY",
+        types: ["Normal"],
+        hp: 125,
+        baseStats: { attack: 45, defense: 45, speed: 50 },
+        moves: [
+            { name: "Fake Out", type: "Normal", accuracy: 100, maxPp: 10, power: 40, priority: 3, effect: { type: "flinch_first_turn_only" } },
+            { name: "Tackle", type: "Normal", accuracy: 100, maxPp: 35, power: 40 },
+            { name: "Growl", type: "Normal", accuracy: 100, maxPp: 40, power: 0, effect: { type: "stat", stat: "attack", target: "opponent", stages: -1 }, alwaysHits: true },
+            { name: "Attract", type: "Normal", accuracy: 100, maxPp: 15, power: 0, effect: { type: "attract" } } // Infatuation (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/300.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/300.png",
+        evolvesToPokedexId: 301
+    },
+    {
+        pokedexId: 301,
+        name: "DELCATTY",
+        types: ["Normal"],
+        hp: 145,
+        baseStats: { attack: 65, defense: 65, speed: 90 }, // Was 70 Speed pre-Gen VII
+        moves: [
+            { name: "Double Slap", type: "Normal", accuracy: 85, maxPp: 10, power: 15 }, // Hits 2-5 times
+            { name: "Sing", type: "Normal", accuracy: 55, maxPp: 15, power: 0, effect: { type: "sleep" } }, // Sleep
+            { name: "Assist", type: "Normal", accuracy: 100, maxPp: 20, power: 0, effect: { type: "assist" } }, // Gebruikt random zet van teamgenoot (niet geïmplementeerd)
+            { name: "Play Rough", type: "Fairy", accuracy: 90, maxPp: 10, power: 90, effect: { type: "stat_chance", stat: "attack", target: "opponent", stages: -1, chance: 0.1 } }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/301.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/301.png",
+        evolvesToPokedexId: null
+    },
+ {
+        pokedexId: 302,
+        name: "SABLEYE",
+        types: ["Dark", "Ghost"],
+        hp: 125, // Base HP 50 + 75
+        baseStats: { attack: 75, defense: 75, speed: 50 },
+        moves: [
+            { name: "Shadow Sneak", type: "Ghost", accuracy: 100, maxPp: 30, power: 40, priority: 1 },
+            { name: "Knock Off", type: "Dark", accuracy: 100, maxPp: 20, power: 65 }, // Removes item effect niet geïmplementeerd
+            { name: "Will-O-Wisp", type: "Fire", accuracy: 85, maxPp: 15, power: 0, effect: { type: "burn" } }, // Burn niet geïmplementeerd
+            { name: "Foul Play", type: "Dark", accuracy: 100, maxPp: 15, power: 95 } // Uses opponent's Attack stat (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/302.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/302.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 303,
+        name: "MAWILE",
+        types: ["Steel", "Fairy"], // Fairy type later toegevoegd
+        hp: 125, // Base HP 50 + 75
+        baseStats: { attack: 85, defense: 85, speed: 50 },
+        moves: [
+            { name: "Play Rough", type: "Fairy", accuracy: 90, maxPp: 10, power: 90, effect: { type: "stat_chance", stat: "attack", target: "opponent", stages: -1, chance: 0.1 } },
+            { name: "Iron Head", type: "Steel", accuracy: 100, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd
+            { name: "Sucker Punch", type: "Dark", accuracy: 100, maxPp: 5, power: 70, priority: 1 }, // Werkt alleen als tegenstander aanvallende zet kiest (niet geïmplementeerd)
+            { name: "Swords Dance", type: "Normal", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: "attack", target: "self", stages: 2 }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/303.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/303.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 304,
+        name: "ARON",
+        types: ["Steel", "Rock"],
+        hp: 125, // Base HP 50 + 75
+        baseStats: { attack: 70, defense: 100, speed: 30 },
+        moves: [
+            { name: "Tackle", type: "Normal", accuracy: 100, maxPp: 35, power: 40 },
+            { name: "Harden", type: "Normal", accuracy: 100, maxPp: 30, power: 0, effect: { type: "stat", stat: "defense", target: "self", stages: 1 }, alwaysHits: true },
+            { name: "Metal Claw", type: "Steel", accuracy: 95, maxPp: 35, power: 50, effect: { type: "stat_chance", stat: "attack", target: "self", stages: 1, chance: 0.1 } },
+            { name: "Rock Tomb", type: "Rock", accuracy: 95, maxPp: 15, power: 60, effect: { type: "stat", stat: "speed", target: "opponent", stages: -1 } }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/304.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/304.png",
+        evolvesToPokedexId: 305
+    },
+    {
+        pokedexId: 305,
+        name: "LAIRON",
+        types: ["Steel", "Rock"],
+        hp: 135, // Base HP 60 + 75
+        baseStats: { attack: 90, defense: 140, speed: 40 },
+        moves: [
+            { name: "Iron Head", type: "Steel", accuracy: 100, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd
+            { name: "Rock Slide", type: "Rock", accuracy: 90, maxPp: 10, power: 75, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd
+            { name: "Metal Sound", type: "Steel", accuracy: 85, maxPp: 40, power: 0, effect: { type: "stat", stat: "defense", target: "opponent", stages: -2 } }, // Normaal Sp.Def verlaging
+            { name: "Take Down", type: "Normal", accuracy: 85, maxPp: 20, power: 90, effect: { type: "recoil", percentage: 0.25 } } // Recoil niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/305.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/305.png",
+        evolvesToPokedexId: 306
+    },
+    {
+        pokedexId: 306,
+        name: "AGGRON",
+        types: ["Steel", "Rock"],
+        hp: 145, // Base HP 70 + 75
+        baseStats: { attack: 110, defense: 180, speed: 50 },
+        moves: [
+            { name: "Heavy Slam", type: "Steel", accuracy: 100, maxPp: 10, power: 0 }, // Power afhankelijk van gewichtsverschil (niet geïmplementeerd)
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 },
+            { name: "Iron Tail", type: "Steel", accuracy: 75, maxPp: 15, power: 100, effect: { type: "stat_chance", stat: "defense", target: "opponent", stages: -1, chance: 0.3 } },
+            { name: "Stone Edge", type: "Rock", accuracy: 80, maxPp: 5, power: 100, effect: { type: "crit", chance: 0.125 } } // High crit niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/306.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/306.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 307,
+        name: "MEDITITE",
+        types: ["Fighting", "Psychic"],
+        hp: 105, // Base HP 30 + 75
+        baseStats: { attack: 40, defense: 55, speed: 60 },
+        moves: [
+            { name: "Confusion", type: "Psychic", accuracy: 100, maxPp: 25, power: 50, effect: { type: "confusion", chance: 0.1 } }, // Confusion niet geïmplementeerd
+            { name: "Meditate", type: "Psychic", accuracy: 100, maxPp: 40, power: 0, effect: { type: "stat", stat: "attack", target: "self", stages: 1 }, alwaysHits: true },
+            { name: "High Jump Kick", type: "Fighting", accuracy: 90, maxPp: 10, power: 130, effect: { type: "crash_damage_on_miss", percentage: 0.5 } }, // Crash damage niet geïmplementeerd
+            { name: "Detect", type: "Fighting", accuracy: 100, maxPp: 5, power: 0, effect: { type: "protect" }, priority: 4, alwaysHits: true } // Protect niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/307.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/307.png",
+        evolvesToPokedexId: 308
+    },
+    {
+        pokedexId: 308,
+        name: "MEDICHAM",
+        types: ["Fighting", "Psychic"],
+        hp: 135, // Base HP 60 + 75
+        baseStats: { attack: 60, defense: 75, speed: 80 }, // Pure Power ability verdubbelt Attack
+        moves: [
+            { name: "Zen Headbutt", type: "Psychic", accuracy: 90, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } }, // Flinch niet geïmplementeerd
+            { name: "High Jump Kick", type: "Fighting", accuracy: 90, maxPp: 10, power: 130, effect: { type: "crash_damage_on_miss", percentage: 0.5 } }, // Crash damage niet geïmplementeerd
+            { name: "Psycho Cut", type: "Psychic", accuracy: 100, maxPp: 20, power: 70, effect: { type: "crit", chance: 0.125 } }, // High crit niet geïmplementeerd
+            { name: "Bulk Up", type: "Fighting", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat_multi", stats: ["attack", "defense"], target: "self", stages: [1, 1] }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/308.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/308.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 309,
+        name: "ELECTRIKE",
+        types: ["Electric"],
+        hp: 115, // Base HP 40 + 75
+        baseStats: { attack: 45, defense: 40, speed: 65 },
+        moves: [
+            { name: "Spark", type: "Electric", accuracy: 100, maxPp: 20, power: 65, effect: { type: "paralysis", chance: 0.3 } }, // Paralysis niet geïmplementeerd
+            { name: "Leer", type: "Normal", accuracy: 100, maxPp: 30, power: 0, effect: { type: "stat", stat: "defense", target: "opponent", stages: -1 }, alwaysHits: true },
+            { name: "Quick Attack", type: "Normal", accuracy: 100, maxPp: 30, power: 40, priority: 1 },
+            { name: "Thunder Wave", type: "Electric", accuracy: 90, maxPp: 20, power: 0, effect: { type: "paralysis" } } // Paralysis niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/309.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/309.png",
+        evolvesToPokedexId: 310
+    },
+    {
+        pokedexId: 310,
+        name: "MANECTRIC",
+        types: ["Electric"],
+        hp: 145, // Base HP 70 + 75
+        baseStats: { attack: 75, defense: 60, speed: 105 },
+        moves: [
+            { name: "Thunderbolt", type: "Electric", accuracy: 100, maxPp: 15, power: 90, effect: { type: "paralysis", chance: 0.1 } }, // Paralysis niet geïmplementeerd
+            { name: "Flamethrower", type: "Fire", accuracy: 100, maxPp: 15, power: 90, effect: { type: "burn", chance: 0.1 } }, // Burn niet geïmplementeerd (gebruikt Attack stat hier)
+            { name: "Thunder Fang", type: "Electric", accuracy: 95, maxPp: 15, power: 65, effect: { type: "flinch_or_paralysis", flinchChance: 0.1, conditionChance: 0.1, condition: "paralysis" } }, // Flinch/Paralysis niet geïmplementeerd
+            { name: "Agility", type: "Psychic", accuracy: 100, maxPp: 30, power: 0, effect: { type: "stat", stat: "speed", target: "self", stages: 2 }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/310.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/310.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 311,
+        name: "PLUSLE",
+        types: ["Electric"],
+        hp: 135, // Base HP 60 + 75
+        baseStats: { attack: 50, defense: 40, speed: 95 },
+        moves: [
+            { name: "Spark", type: "Electric", accuracy: 100, maxPp: 20, power: 65, effect: { type: "paralysis", chance: 0.3 } }, // Paralysis niet geïmplementeerd
+            { name: "Helping Hand", type: "Normal", accuracy: 100, maxPp: 20, power: 0, priority: 5, effect: { type: "helping_hand" } }, // Boost partner's move (niet geïmplementeerd)
+            { name: "Nuzzle", type: "Electric", accuracy: 100, maxPp: 20, power: 20, effect: { type: "paralysis", chance: 1.0 } }, // Paralysis niet geïmplementeerd
+            { name: "Swift", type: "Normal", accuracy: 100, maxPp: 20, power: 60, alwaysHits: true } // Kan niet missen
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/311.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/311.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 312,
+        name: "MINUN",
+        types: ["Electric"],
+        hp: 135, // Base HP 60 + 75
+        baseStats: { attack: 40, defense: 50, speed: 95 },
+        moves: [
+            { name: "Spark", type: "Electric", accuracy: 100, maxPp: 20, power: 65, effect: { type: "paralysis", chance: 0.3 } }, // Paralysis niet geïmplementeerd
+            { name: "Charm", type: "Fairy", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: "attack", target: "opponent", stages: -2 } }, // Was Normal type
+            { name: "Nuzzle", type: "Electric", accuracy: 100, maxPp: 20, power: 20, effect: { type: "paralysis", chance: 1.0 } }, // Paralysis niet geïmplementeerd
+            { name: "Agility", type: "Psychic", accuracy: 100, maxPp: 30, power: 0, effect: { type: "stat", stat: "speed", target: "self", stages: 2 }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/312.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/312.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 313,
+        name: "VOLBEAT",
+        types: ["Bug"],
+        hp: 140, // Base HP 65 + 75
+        baseStats: { attack: 73, defense: 75, speed: 85 }, // Def was 55 pre-Gen7
+        moves: [
+            { name: "Bug Bite", type: "Bug", accuracy: 100, maxPp: 20, power: 60 },
+            { name: "Play Rough", type: "Fairy", accuracy: 90, maxPp: 10, power: 90, effect: { type: "stat_chance", stat: "attack", target: "opponent", stages: -1, chance: 0.1 } },
+            { name: "Tail Glow", type: "Bug", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: "attack", target: "self", stages: 3 }, alwaysHits: true }, // Normaal Sp.Atk +3
+            { name: "U-turn", type: "Bug", accuracy: 100, maxPp: 20, power: 70, effect: { type: "switch_out" } } // Switch out (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/313.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/313.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 314,
+        name: "ILLUMISE",
+        types: ["Bug"],
+        hp: 140, // Base HP 65 + 75
+        baseStats: { attack: 47, defense: 75, speed: 85 }, // Def was 55 pre-Gen7
+        moves: [
+            { name: "Bug Bite", type: "Bug", accuracy: 100, maxPp: 20, power: 60 },
+            { name: "Play Rough", type: "Fairy", accuracy: 90, maxPp: 10, power: 90, effect: { type: "stat_chance", stat: "attack", target: "opponent", stages: -1, chance: 0.1 } },
+            { name: "Wish", type: "Normal", accuracy: 100, maxPp: 10, power: 0, effect: { type: "wish" } }, // Heal volgende beurt (niet geïmplementeerd)
+            { name: "Sweet Scent", type: "Normal", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: "evasion", target: "opponent", stages: -2 } } // Evasion niet in baseStats
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/314.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/314.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 315,
+        name: "ROSELIA",
+        types: ["Grass", "Poison"],
+        hp: 125, // Base HP 50 + 75
+        baseStats: { attack: 60, defense: 45, speed: 65 },
+        moves: [
+            { name: "Giga Drain", type: "Grass", accuracy: 100, maxPp: 10, power: 75, effect: { type: "drain", percentage: 0.5 } }, // Drain niet geïmplementeerd
+            { name: "Sludge Bomb", type: "Poison", accuracy: 100, maxPp: 10, power: 90, effect: { type: "poison", chance: 0.3 } }, // Poison niet geïmplementeerd
+            { name: "Toxic Spikes", type: "Poison", accuracy: 100, maxPp: 20, power: 0, effect: { type: "entry_hazard", hazard: "toxic_spikes" } }, // Entry hazard niet geïmplementeerd
+            { name: "Magical Leaf", type: "Grass", accuracy: 100, maxPp: 20, power: 60, alwaysHits: true } // Kan niet missen
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/315.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/315.png",
+        evolvesToPokedexId: 407 // Roserade (Gen 4)
+    },
+    {
+        pokedexId: 316,
+        name: "GULPIN",
+        types: ["Poison"],
+        hp: 145, // Base HP 70 + 75
+        baseStats: { attack: 43, defense: 53, speed: 40 },
+        moves: [
+            { name: "Pound", type: "Normal", accuracy: 100, maxPp: 35, power: 40 },
+            { name: "Yawn", type: "Normal", accuracy: 100, maxPp: 10, power: 0, effect: { type: "yawn" } }, // Maakt slaperig (niet geïmplementeerd)
+            { name: "Sludge", type: "Poison", accuracy: 100, maxPp: 20, power: 65, effect: { type: "poison", chance: 0.3 } }, // Poison niet geïmplementeerd
+            { name: "Amnesia", type: "Psychic", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: "defense", target: "self", stages: 2 }, alwaysHits: true } // Normaal Sp.Def verhoging
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/316.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/316.png",
+        evolvesToPokedexId: 317
+    },
+    {
+        pokedexId: 317,
+        name: "SWALOT",
+        types: ["Poison"],
+        hp: 175, // Base HP 100 + 75
+        baseStats: { attack: 73, defense: 83, speed: 55 },
+        moves: [
+            { name: "Sludge Bomb", type: "Poison", accuracy: 100, maxPp: 10, power: 90, effect: { type: "poison", chance: 0.3 } }, // Poison niet geïmplementeerd
+            { name: "Body Slam", type: "Normal", accuracy: 100, maxPp: 15, power: 85, effect: { type: "paralysis", chance: 0.3 } }, // Paralysis niet geïmplementeerd
+            { name: "Gunk Shot", type: "Poison", accuracy: 80, maxPp: 5, power: 120, effect: { type: "poison", chance: 0.3 } }, // Poison niet geïmplementeerd
+            { name: "Stockpile", type: "Normal", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stockpile" } } // Verhoogt Def/SpDef, max 3 (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/317.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/317.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 318,
+        name: "CARVANHA",
+        types: ["Water", "Dark"],
+        hp: 120, // Base HP 45 + 75
+        baseStats: { attack: 90, defense: 20, speed: 65 },
+        moves: [
+            { name: "Bite", type: "Dark", accuracy: 100, maxPp: 25, power: 60, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd
+            { name: "Aqua Jet", type: "Water", accuracy: 100, maxPp: 20, power: 40, priority: 1 },
+            { name: "Crunch", type: "Dark", accuracy: 100, maxPp: 15, power: 80, effect: { type: "stat_chance", stat: "defense", target: "opponent", stages: -1, chance: 0.2 } },
+            { name: "Scary Face", type: "Normal", accuracy: 100, maxPp: 10, power: 0, effect: { type: "stat", stat: "speed", target: "opponent", stages: -2 }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/318.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/318.png",
+        evolvesToPokedexId: 319
+    },
+    {
+        pokedexId: 319,
+        name: "SHARPEDO",
+        types: ["Water", "Dark"],
+        hp: 145, // Base HP 70 + 75
+        baseStats: { attack: 120, defense: 40, speed: 95 },
+        moves: [
+            { name: "Waterfall", type: "Water", accuracy: 100, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } }, // Flinch niet geïmplementeerd
+            { name: "Crunch", type: "Dark", accuracy: 100, maxPp: 15, power: 80, effect: { type: "stat_chance", stat: "defense", target: "opponent", stages: -1, chance: 0.2 } },
+            { name: "Ice Fang", type: "Ice", accuracy: 95, maxPp: 15, power: 65, effect: { type: "flinch_or_freeze", flinchChance: 0.1, conditionChance: 0.1, condition: "freeze" } }, // Flinch/Freeze niet geïmplementeerd
+            { name: "Poison Jab", type: "Poison", accuracy: 100, maxPp: 20, power: 80, effect: { type: "poison", chance: 0.3 } } // Poison niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/319.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/319.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 320,
+        name: "WAILMER",
+        types: ["Water"],
+        hp: 205, // Base HP 130 + 75
+        baseStats: { attack: 70, defense: 35, speed: 60 },
+        moves: [
+            { name: "Water Gun", type: "Water", accuracy: 100, maxPp: 25, power: 40 },
+            { name: "Rollout", type: "Rock", accuracy: 90, maxPp: 20, power: 30 }, // Power verdubbelt per hit (max 5) (niet geïmplementeerd)
+            { name: "Astonish", type: "Ghost", accuracy: 100, maxPp: 15, power: 30, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd
+            { name: "Scald", type: "Water", accuracy: 100, maxPp: 15, power: 80, effect: { type: "burn", chance: 0.3 } } // Burn niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/320.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/320.png",
+        evolvesToPokedexId: 321
+    },
+    {
+        pokedexId: 321,
+        name: "WAILORD",
+        types: ["Water"],
+        hp: 245, // Base HP 170 + 75
+        baseStats: { attack: 90, defense: 45, speed: 60 },
+        moves: [
+            { name: "Hydro Pump", type: "Water", accuracy: 80, maxPp: 5, power: 110 },
+            { name: "Heavy Slam", type: "Steel", accuracy: 100, maxPp: 10, power: 0 }, // Power afhankelijk van gewichtsverschil (niet geïmplementeerd)
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 },
+            { name: "Amnesia", type: "Psychic", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: "defense", target: "self", stages: 2 }, alwaysHits: true } // Normaal Sp.Def verhoging
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/321.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/321.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 322,
+        name: "NUMEL",
+        types: ["Fire", "Ground"],
+        hp: 135, // Base HP 60 + 75
+        baseStats: { attack: 60, defense: 40, speed: 35 },
+        moves: [
+            { name: "Ember", type: "Fire", accuracy: 100, maxPp: 25, power: 40, effect: { type: "burn", chance: 0.1 } }, // Burn niet geïmplementeerd
+            { name: "Magnitude", type: "Ground", accuracy: 100, maxPp: 30, power: 0 }, // Power varieert (10-150) (niet geïmplementeerd)
+            { name: "Focus Energy", type: "Normal", accuracy: 100, maxPp: 30, power: 0, effect: { type: "focus_energy" } }, // Verhoogt crit kans (niet geïmplementeerd)
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 } // Leer normaal Earth Power (SpA)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/322.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/322.png",
+        evolvesToPokedexId: 323
+    },
+    {
+        pokedexId: 323,
+        name: "CAMERUPT",
+        types: ["Fire", "Ground"],
+        hp: 145, // Base HP 70 + 75
+        baseStats: { attack: 100, defense: 70, speed: 40 },
+        moves: [
+            { name: "Flamethrower", type: "Fire", accuracy: 100, maxPp: 15, power: 90, effect: { type: "burn", chance: 0.1 } }, // Burn niet geïmplementeerd
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 },
+            { name: "Rock Slide", type: "Rock", accuracy: 90, maxPp: 10, power: 75, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd
+            { name: "Yawn", type: "Normal", accuracy: 100, maxPp: 10, power: 0, effect: { type: "yawn" } } // Maakt slaperig (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/323.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/323.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 324,
+        name: "TORKOAL",
+        types: ["Fire"],
+        hp: 145, // Base HP 70 + 75
+        baseStats: { attack: 85, defense: 140, speed: 20 },
+        moves: [
+            { name: "Flamethrower", type: "Fire", accuracy: 100, maxPp: 15, power: 90, effect: { type: "burn", chance: 0.1 } }, // Burn niet geïmplementeerd
+            { name: "Body Slam", type: "Normal", accuracy: 100, maxPp: 15, power: 85, effect: { type: "paralysis", chance: 0.3 } }, // Paralysis niet geïmplementeerd
+            { name: "Shell Smash", type: "Normal", accuracy: 100, maxPp: 15, power: 0, effect: { type: "shell_smash" } }, // Atk/Speed +2, Def -1 (aangepast) (niet geïmplementeerd)
+            { name: "Rapid Spin", type: "Normal", accuracy: 100, maxPp: 40, power: 50 } // Effect: removes hazards (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/324.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/324.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 325,
+        name: "SPOINK",
+        types: ["Psychic"],
+        hp: 135, // Base HP 60 + 75
+        baseStats: { attack: 25, defense: 35, speed: 60 },
+        moves: [
+            { name: "Psybeam", type: "Psychic", accuracy: 100, maxPp: 20, power: 65, effect: { type: "confusion", chance: 0.1 } }, // Confusion niet geïmplementeerd
+            { name: "Confuse Ray", type: "Ghost", accuracy: 100, maxPp: 10, power: 0, effect: { type: "confusion", chance: 1.0 } }, // Confusion niet geïmplementeerd
+            { name: "Magic Coat", type: "Psychic", accuracy: 100, maxPp: 15, power: 0, priority: 4, effect: { type: "magic_coat" } }, // Reflecteert status moves (niet geïmplementeerd)
+            { name: "Bounce", type: "Flying", accuracy: 85, maxPp: 5, power: 85, effect: { type: "two_turn_move", conditionChance: 0.3, condition: "paralysis" } } // Twee-beurt, Paralyse kans (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/325.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/325.png",
+        evolvesToPokedexId: 326
+    },
+    {
+        pokedexId: 326,
+        name: "GRUMPIG",
+        types: ["Psychic"],
+        hp: 155, // Base HP 80 + 75
+        baseStats: { attack: 45, defense: 65, speed: 80 },
+        moves: [
+            { name: "Psychic", type: "Psychic", accuracy: 100, maxPp: 10, power: 90, effect: { type: "stat_chance", stat: "defense", target: "opponent", stages: -1, chance: 0.1 } }, // Normaal Sp.Def verlaging
+            { name: "Headbutt", type: "Normal", accuracy: 100, maxPp: 15, power: 70, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd (ipv Power Gem)
+            { name: "Confuse Ray", type: "Ghost", accuracy: 100, maxPp: 10, power: 0, effect: { type: "confusion", chance: 1.0 } }, // Confusion niet geïmplementeerd
+            { name: "Teeter Dance", type: "Normal", accuracy: 100, maxPp: 20, power: 0, effect: { type: "confusion_all_others" } } // Verwart alle andere Pokémon (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/326.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/326.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 327,
+        name: "SPINDA",
+        types: ["Normal"],
+        hp: 135, // Base HP 60 + 75
+        baseStats: { attack: 60, defense: 60, speed: 60 },
+        moves: [
+            { name: "Dizzy Punch", type: "Normal", accuracy: 100, maxPp: 10, power: 70, effect: { type: "confusion", chance: 0.2 } }, // Confusion niet geïmplementeerd
+            { name: "Teeter Dance", type: "Normal", accuracy: 100, maxPp: 20, power: 0, effect: { type: "confusion_all_others" } }, // Verwart alle andere Pokémon (niet geïmplementeerd)
+            { name: "Sucker Punch", type: "Dark", accuracy: 100, maxPp: 5, power: 70, priority: 1 }, // Werkt alleen als tegenstander aanvallende zet kiest (niet geïmplementeerd)
+            { name: "Thrash", type: "Normal", accuracy: 100, maxPp: 10, power: 120, effect: { type: "rampage_and_confuse_self" } } // 2-3 beurten, verwart gebruiker (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/327.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/327.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 328,
+        name: "TRAPINCH",
+        types: ["Ground"],
+        hp: 120, // Base HP 45 + 75
+        baseStats: { attack: 100, defense: 45, speed: 10 },
+        moves: [
+            { name: "Bite", type: "Dark", accuracy: 100, maxPp: 25, power: 60, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd
+            { name: "Dig", type: "Ground", accuracy: 100, maxPp: 10, power: 80, effect: { type: "two_turn_move" } }, // Twee-beurt (niet geïmplementeerd)
+            { name: "Sand Tomb", type: "Ground", accuracy: 85, maxPp: 15, power: 35, effect: { type: "trap_and_damage_over_time", turns: "4-5" } }, // Trapt en doet schade (niet geïmplementeerd)
+            { name: "Crunch", type: "Dark", accuracy: 100, maxPp: 15, power: 80, effect: { type: "stat_chance", stat: "defense", target: "opponent", stages: -1, chance: 0.2 } }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/328.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/328.png",
+        evolvesToPokedexId: 329
+    },
+    {
+        pokedexId: 329,
+        name: "VIBRAVA",
+        types: ["Ground", "Dragon"],
+        hp: 125, // Base HP 50 + 75
+        baseStats: { attack: 70, defense: 50, speed: 70 },
+        moves: [
+            { name: "Dragon Breath", type: "Dragon", accuracy: 100, maxPp: 20, power: 60, effect: { type: "paralysis", chance: 0.3 } }, // Paralysis niet geïmplementeerd
+            { name: "Bug Bite", type: "Bug", accuracy: 100, maxPp: 20, power: 60 }, // Ipv Bug Buzz (SpA)
+            { name: "Dig", type: "Ground", accuracy: 100, maxPp: 10, power: 80, effect: { type: "two_turn_move" } }, // Twee-beurt (niet geïmplementeerd)
+            { name: "Supersonic", type: "Normal", accuracy: 55, maxPp: 20, power: 0, effect: { type: "confusion", chance: 1.0 } } // Confusion niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/329.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/329.png",
+        evolvesToPokedexId: 330
+    },
+    {
+        pokedexId: 330,
+        name: "FLYGON",
+        types: ["Ground", "Dragon"],
+        hp: 155, // Base HP 80 + 75
+        baseStats: { attack: 100, defense: 80, speed: 100 },
+        moves: [
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 },
+            { name: "Dragon Claw", type: "Dragon", accuracy: 100, maxPp: 15, power: 80 },
+            { name: "U-turn", type: "Bug", accuracy: 100, maxPp: 20, power: 70, effect: { type: "switch_out" } }, // Switch out (niet geïmplementeerd)
+            { name: "Fire Punch", type: "Fire", accuracy: 100, maxPp: 15, power: 75, effect: { type: "burn", chance: 0.1 } } // Burn niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/330.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/330.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 331,
+        name: "CACNEA",
+        types: ["Grass"],
+        hp: 125, // Base HP 50 + 75
+        baseStats: { attack: 85, defense: 40, speed: 35 },
+        moves: [
+            { name: "Needle Arm", type: "Grass", accuracy: 100, maxPp: 15, power: 60, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd
+            { name: "Pin Missile", type: "Bug", accuracy: 95, maxPp: 20, power: 25 }, // Hits 2-5 times (niet geïmplementeerd)
+            { name: "Leech Seed", type: "Grass", accuracy: 90, maxPp: 10, power: 0, effect: { type: "leech_seed" } }, // Leech Seed niet geïmplementeerd
+            { name: "Sand Attack", type: "Ground", accuracy: 100, maxPp: 15, power: 0, effect: { type: "stat", stat: "accuracy", target: "opponent", stages: -1 } }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/331.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/331.png",
+        evolvesToPokedexId: 332
+    },
+    {
+        pokedexId: 332,
+        name: "CACTURNE",
+        types: ["Grass", "Dark"],
+        hp: 145, // Base HP 70 + 75
+        baseStats: { attack: 115, defense: 60, speed: 55 },
+        moves: [
+            { name: "Seed Bomb", type: "Grass", accuracy: 100, maxPp: 15, power: 80 },
+            { name: "Sucker Punch", type: "Dark", accuracy: 100, maxPp: 5, power: 70, priority: 1 }, // Werkt alleen als tegenstander aanvallende zet kiest (niet geïmplementeerd)
+            { name: "Spiky Shield", type: "Grass", accuracy: 100, maxPp: 10, power: 0, priority: 4, effect: { type: "protect_and_damage_if_contact" } }, // Protect + schade (niet geïmplementeerd)
+            { name: "Swords Dance", type: "Normal", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: "attack", target: "self", stages: 2 }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/332.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/332.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 333,
+        name: "SWABLU",
+        types: ["Normal", "Flying"],
+        hp: 120, // Base HP 45 + 75
+        baseStats: { attack: 40, defense: 60, speed: 50 },
+        moves: [
+            { name: "Peck", type: "Flying", accuracy: 100, maxPp: 35, power: 35 },
+            { name: "Sing", type: "Normal", accuracy: 55, maxPp: 15, power: 0, effect: { type: "sleep" } }, // Sleep niet geïmplementeerd
+            { name: "Fury Attack", type: "Normal", accuracy: 85, maxPp: 20, power: 15 }, // Hits 2-5 times (niet geïmplementeerd)
+            { name: "Cotton Guard", type: "Grass", accuracy: 100, maxPp: 10, power: 0, effect: { type: "stat", stat: "defense", target: "self", stages: 3 }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/333.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/333.png",
+        evolvesToPokedexId: 334
+    },
+    {
+        pokedexId: 334,
+        name: "ALTARIA",
+        types: ["Dragon", "Flying"],
+        hp: 150, // Base HP 75 + 75
+        baseStats: { attack: 70, defense: 90, speed: 80 },
+        moves: [
+            { name: "Dragon Claw", type: "Dragon", accuracy: 100, maxPp: 15, power: 80 }, // Ipv Dragon Pulse (SpA)
+            { name: "Play Rough", type: "Fairy", accuracy: 90, maxPp: 10, power: 90, effect: { type: "stat_chance", stat: "attack", target: "opponent", stages: -1, chance: 0.1 } }, // Ipv Moonblast (SpA), Fairy type later
+            { name: "Roost", type: "Flying", accuracy: 100, maxPp: 10, power: 0, effect: { type: "heal_percentage_lose_flying", percentage: 0.5 } }, // Heal, verliest Flying (niet geïmplementeerd)
+            { name: "Cotton Guard", type: "Grass", accuracy: 100, maxPp: 10, power: 0, effect: { type: "stat", stat: "defense", target: "self", stages: 3 }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/334.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/334.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 335,
+        name: "ZANGOOSE",
+        types: ["Normal"],
+        hp: 150, // Base HP 73 + 75 (rounded)
+        baseStats: { attack: 115, defense: 60, speed: 90 },
+        moves: [
+            { name: "Crush Claw", type: "Normal", accuracy: 95, maxPp: 10, power: 75, effect: { type: "stat_chance", stat: "defense", target: "opponent", stages: -1, chance: 0.5 } },
+            { name: "Close Combat", type: "Fighting", accuracy: 100, maxPp: 5, power: 120, effect: { type: "stat_self_multi", stats: ["defense"], target: "self", stages: [-1] } }, // Normaal Def en Sp.Def -1
+            { name: "Quick Attack", type: "Normal", accuracy: 100, maxPp: 30, power: 40, priority: 1 },
+            { name: "Swords Dance", type: "Normal", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: "attack", target: "self", stages: 2 }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/335.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/335.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 336,
+        name: "SEVIPER",
+        types: ["Poison"],
+        hp: 150, // Base HP 73 + 75 (rounded)
+        baseStats: { attack: 100, defense: 60, speed: 65 },
+        moves: [
+            { name: "Poison Fang", type: "Poison", accuracy: 100, maxPp: 15, power: 50, effect: { type: "bad_poison", chance: 0.5 } }, // Badly poison (niet geïmplementeerd)
+            { name: "Crunch", type: "Dark", accuracy: 100, maxPp: 15, power: 80, effect: { type: "stat_chance", stat: "defense", target: "opponent", stages: -1, chance: 0.2 } },
+            { name: "Glare", type: "Normal", accuracy: 100, maxPp: 30, power: 0, effect: { type: "paralysis" } }, // Paralysis niet geïmplementeerd
+            { name: "Coil", type: "Poison", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat_multi", stats: ["attack", "defense", "accuracy_self"], target: "self", stages: [1, 1, 1] }, alwaysHits: true } // Accuracy niet in baseStats
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/336.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/336.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 337,
+        name: "LUNATONE",
+        types: ["Rock", "Psychic"],
+        hp: 165, // Base HP 90 (Gen7+) + 75
+        baseStats: { attack: 55, defense: 65, speed: 70 },
+        moves: [
+            { name: "Rock Throw", type: "Rock", accuracy: 90, maxPp: 15, power: 50 },
+            { name: "Zen Headbutt", type: "Psychic", accuracy: 90, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } }, // Flinch niet geïmplementeerd (ipv Confusion/Psychic)
+            { name: "Cosmic Power", type: "Psychic", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat_multi", stats: ["defense", "defense"], target: "self", stages: [1, 1] }, alwaysHits: true }, // Verhoogt Def & Sp.Def (hier 2x Def)
+            { name: "Rock Slide", type: "Rock", accuracy: 90, maxPp: 10, power: 75, effect: { type: "flinch", chance: 0.3 } } // Flinch niet geïmplementeerd (ipv Moonblast)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/337.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/337.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 338,
+        name: "SOLROCK",
+        types: ["Rock", "Psychic"],
+        hp: 165, // Base HP 90 (Gen7+) + 75
+        baseStats: { attack: 95, defense: 85, speed: 70 },
+        moves: [
+            { name: "Rock Throw", type: "Rock", accuracy: 90, maxPp: 15, power: 50 },
+            { name: "Zen Headbutt", type: "Psychic", accuracy: 90, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } }, // Flinch niet geïmplementeerd
+            { name: "Cosmic Power", type: "Psychic", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat_multi", stats: ["defense", "defense"], target: "self", stages: [1, 1] }, alwaysHits: true }, // Verhoogt Def & Sp.Def (hier 2x Def)
+            { name: "Stone Edge", type: "Rock", accuracy: 80, maxPp: 5, power: 100, effect: { type: "crit", chance: 0.125 } } // High crit niet geïmplementeerd (ipv Solar Beam)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/338.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/338.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 339,
+        name: "BARBOACH",
+        types: ["Water", "Ground"],
+        hp: 125, // Base HP 50 + 75
+        baseStats: { attack: 48, defense: 43, speed: 60 },
+        moves: [
+            { name: "Mud-Slap", type: "Ground", accuracy: 100, maxPp: 10, power: 20, effect: { type: "stat", stat: "accuracy", target: "opponent", stages: -1 } },
+            { name: "Water Gun", type: "Water", accuracy: 100, maxPp: 25, power: 40 },
+            { name: "Amnesia", type: "Psychic", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: "defense", target: "self", stages: 2 }, alwaysHits: true }, // Normaal Sp.Def verhoging
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/339.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/339.png",
+        evolvesToPokedexId: 340
+    },
+    {
+        pokedexId: 340,
+        name: "WHISCASH",
+        types: ["Water", "Ground"],
+        hp: 185, // Base HP 110 + 75
+        baseStats: { attack: 78, defense: 73, speed: 60 },
+        moves: [
+            { name: "Waterfall", type: "Water", accuracy: 100, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } }, // Flinch niet geïmplementeerd
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 },
+            { name: "Spark", type: "Electric", accuracy: 100, maxPp: 20, power: 65, effect: { type: "paralysis", chance: 0.3 } }, // Paralysis niet geïmplementeerd
+            { name: "Dragon Dance", type: "Dragon", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat_multi", stats: ["attack", "speed"], target: "self", stages: [1, 1] }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/340.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/340.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 341,
+        name: "CORPHISH",
+        types: ["Water"],
+        hp: 120, // Base HP 43 + 75 (rounded)
+        baseStats: { attack: 80, defense: 65, speed: 35 },
+        moves: [
+            { name: "Bubble Beam", type: "Water", accuracy: 100, maxPp: 20, power: 65, effect: { type: "stat_chance", stat: "speed", target: "opponent", stages: -1, chance: 0.1 } },
+            { name: "Knock Off", type: "Dark", accuracy: 100, maxPp: 20, power: 65 }, // Removes item effect niet geïmplementeerd
+            { name: "Crabhammer", type: "Water", accuracy: 90, maxPp: 10, power: 100, effect: { type: "crit", chance: 0.125 } }, // High crit niet geïmplementeerd
+            { name: "Swords Dance", type: "Normal", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: "attack", target: "self", stages: 2 }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/341.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/341.png",
+        evolvesToPokedexId: 342
+    },
+    {
+        pokedexId: 342,
+        name: "CRAWDAUNT",
+        types: ["Water", "Dark"],
+        hp: 140, // Base HP 63 + 75 (rounded)
+        baseStats: { attack: 120, defense: 85, speed: 55 },
+        moves: [
+            { name: "Crabhammer", type: "Water", accuracy: 90, maxPp: 10, power: 100, effect: { type: "crit", chance: 0.125 } }, // High crit niet geïmplementeerd
+            { name: "Knock Off", type: "Dark", accuracy: 100, maxPp: 20, power: 65 }, // Removes item effect niet geïmplementeerd
+            { name: "Aqua Jet", type: "Water", accuracy: 100, maxPp: 20, power: 40, priority: 1 },
+            { name: "Dragon Dance", type: "Dragon", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat_multi", stats: ["attack", "speed"], target: "self", stages: [1, 1] }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/342.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/342.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 343,
+        name: "BALTOY",
+        types: ["Ground", "Psychic"],
+        hp: 115, // Base HP 40 + 75
+        baseStats: { attack: 40, defense: 55, speed: 55 },
+        moves: [
+            { name: "Confusion", type: "Psychic", accuracy: 100, maxPp: 25, power: 50, effect: { type: "confusion", chance: 0.1 } }, // Confusion niet geïmplementeerd
+            { name: "Mud-Slap", type: "Ground", accuracy: 100, maxPp: 10, power: 20, effect: { type: "stat", stat: "accuracy", target: "opponent", stages: -1 } },
+            { name: "Rock Tomb", type: "Rock", accuracy: 95, maxPp: 15, power: 60, effect: { type: "stat", stat: "speed", target: "opponent", stages: -1 } },
+            { name: "Cosmic Power", type: "Psychic", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat_multi", stats: ["defense", "defense"], target: "self", stages: [1, 1] }, alwaysHits: true } // Verhoogt Def & Sp.Def (hier 2x Def)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/343.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/343.png",
+        evolvesToPokedexId: 344
+    },
+    {
+        pokedexId: 344,
+        name: "CLAYDOL",
+        types: ["Ground", "Psychic"],
+        hp: 135, // Base HP 60 + 75
+        baseStats: { attack: 70, defense: 105, speed: 75 },
+        moves: [
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 },
+            { name: "Zen Headbutt", type: "Psychic", accuracy: 90, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } }, // Flinch niet geïmplementeerd (ipv Psychic)
+            { name: "Rapid Spin", type: "Normal", accuracy: 100, maxPp: 40, power: 50 }, // Effect: removes hazards (niet geïmplementeerd)
+            { name: "Cosmic Power", type: "Psychic", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat_multi", stats: ["defense", "defense"], target: "self", stages: [1, 1] }, alwaysHits: true } // Verhoogt Def & Sp.Def (hier 2x Def)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/344.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/344.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 345,
+        name: "LILEEP",
+        types: ["Rock", "Grass"],
+        hp: 140, // Base HP 66 + 75 (rounded)
+        baseStats: { attack: 41, defense: 77, speed: 23 },
+        moves: [
+            { name: "Astonish", type: "Ghost", accuracy: 100, maxPp: 15, power: 30, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd
+            { name: "Ingrain", type: "Grass", accuracy: 100, maxPp: 20, power: 0, effect: { type: "ingrain_and_heal_over_time" } }, // Trapt en heelt (niet geïmplementeerd)
+            { name: "Ancient Power", type: "Rock", accuracy: 100, maxPp: 5, power: 60, effect: { type: "stat_all_self_chance", chance: 0.1 } }, // Alle stats +1 kans (niet geïmplementeerd)
+            { name: "Confuse Ray", type: "Ghost", accuracy: 100, maxPp: 10, power: 0, effect: { type: "confusion", chance: 1.0 } } // Confusion niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/345.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/345.png",
+        evolvesToPokedexId: 346
+    },
+    {
+        pokedexId: 346,
+        name: "CRADILY",
+        types: ["Rock", "Grass"],
+        hp: 160, // Base HP 86 + 75 (rounded)
+        baseStats: { attack: 81, defense: 97, speed: 43 },
+        moves: [
+            { name: "Rock Slide", type: "Rock", accuracy: 90, maxPp: 10, power: 75, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd
+            { name: "Giga Drain", type: "Grass", accuracy: 100, maxPp: 10, power: 75, effect: { type: "drain", percentage: 0.5 } }, // Drain niet geïmplementeerd
+            { name: "Recover", type: "Normal", accuracy: 100, maxPp: 10, power: 0, effect: { type: "heal_percentage", percentage: 0.5 } }, // Heal niet geïmplementeerd
+            { name: "Stockpile", type: "Normal", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stockpile" } } // Verhoogt Def/SpDef (niet geïmplementeerd)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/346.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/346.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 347,
+        name: "ANORITH",
+        types: ["Rock", "Bug"],
+        hp: 120, // Base HP 45 + 75
+        baseStats: { attack: 95, defense: 50, speed: 75 },
+        moves: [
+            { name: "Scratch", type: "Normal", accuracy: 100, maxPp: 35, power: 40 },
+            { name: "Harden", type: "Normal", accuracy: 100, maxPp: 30, power: 0, effect: { type: "stat", stat: "defense", target: "self", stages: 1 }, alwaysHits: true },
+            { name: "Rock Blast", type: "Rock", accuracy: 90, maxPp: 10, power: 25 }, // Hits 2-5 times (niet geïmplementeerd)
+            { name: "Metal Claw", type: "Steel", accuracy: 95, maxPp: 35, power: 50, effect: { type: "stat_chance", stat: "attack", target: "self", stages: 1, chance: 0.1 } }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/347.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/347.png",
+        evolvesToPokedexId: 348
+    },
+    {
+        pokedexId: 348,
+        name: "ARMALDO",
+        types: ["Rock", "Bug"],
+        hp: 150, // Base HP 75 + 75
+        baseStats: { attack: 125, defense: 100, speed: 45 },
+        moves: [
+            { name: "Stone Edge", type: "Rock", accuracy: 80, maxPp: 5, power: 100, effect: { type: "crit", chance: 0.125 } }, // High crit niet geïmplementeerd
+            { name: "X-Scissor", type: "Bug", accuracy: 100, maxPp: 15, power: 80 },
+            { name: "Aqua Jet", type: "Water", accuracy: 100, maxPp: 20, power: 40, priority: 1 },
+            { name: "Swords Dance", type: "Normal", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: "attack", target: "self", stages: 2 }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/348.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/348.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 349,
+        name: "FEEBAS",
+        types: ["Water"],
+        hp: 95, // Base HP 20 + 75
+        baseStats: { attack: 15, defense: 20, speed: 80 },
+        moves: [
+            { name: "Splash", type: "Normal", accuracy: 100, maxPp: 40, power: 0 }, // Doet niks
+            { name: "Tackle", type: "Normal", accuracy: 100, maxPp: 35, power: 40 },
+            { name: "Flail", type: "Normal", accuracy: 100, maxPp: 15, power: 0 }, // Power afhankelijk van lage HP (niet geïmplementeerd)
+            { name: "Dragon Breath", type: "Dragon", accuracy: 100, maxPp: 20, power: 60, effect: { type: "paralysis", chance: 0.3 } } // Paralysis niet geïmplementeerd (TM/Tutor)
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/349.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/349.png",
+        evolvesToPokedexId: 350
+    },
+    {
+        pokedexId: 350,
+        name: "MILOTIC",
+        types: ["Water"],
+        hp: 170, // Base HP 95 + 75
+        baseStats: { attack: 60, defense: 79, speed: 81 },
+        moves: [
+            { name: "Aqua Tail", type: "Water", accuracy: 90, maxPp: 10, power: 90 }, // Ipv Scald (SpA)
+            { name: "Ice Fang", type: "Ice", accuracy: 95, maxPp: 15, power: 65, effect: { type: "flinch_or_freeze", flinchChance: 0.1, conditionChance: 0.1, condition: "freeze" } }, // Ipv Ice Beam (SpA)
+            { name: "Recover", type: "Normal", accuracy: 100, maxPp: 10, power: 0, effect: { type: "heal_percentage", percentage: 0.5 } }, // Heal niet geïmplementeerd
+            { name: "Waterfall", type: "Water", accuracy: 100, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } } // Flinch niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/350.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/350.png",
+        evolvesToPokedexId: null
+    },
+   {
+        pokedexId: 352,
+        name: "KECLEON",
+        types: ["Normal"], // Type verandert met Color Change ability
+        hp: 135, // Base HP 60 + 75
+        baseStats: { attack: 90, defense: 70, speed: 40 },
+        moves: [
+            { name: "Shadow Sneak", type: "Ghost", accuracy: 100, maxPp: 30, power: 40, priority: 1 },
+            { name: "Drain Punch", type: "Fighting", accuracy: 100, maxPp: 10, power: 75, effect: { type: "drain", percentage: 0.5 } }, // Drain niet geïmplementeerd
+            { name: "Sucker Punch", type: "Dark", accuracy: 100, maxPp: 5, power: 70, priority: 1 }, // Werkt alleen als tegenstander aanvallende zet kiest (niet geïmplementeerd)
+            { name: "Recover", type: "Normal", accuracy: 100, maxPp: 10, power: 0, effect: { type: "heal_percentage", percentage: 0.5 } } // Heal niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/352.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/352.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 353,
+        name: "SHUPPET",
+        types: ["Ghost"],
+        hp: 119,
+        baseStats: { attack: 75, defense: 35, speed: 45 },
+        moves: [
+            { name: "Shadow Sneak", type: "Ghost", accuracy: 100, maxPp: 30, power: 40, priority: 1 },
+            { name: "Knock Off", type: "Dark", accuracy: 100, maxPp: 20, power: 65, effect: { type: "remove_item" } }, // Item removal niet geïmplementeerd
+            { name: "Will-O-Wisp", type: "Fire", accuracy: 85, maxPp: 15, power: 0, effect: { type: "burn" } }, // Burn niet geïmplementeerd
+            { name: "Screech", type: "Normal", accuracy: 85, maxPp: 40, power: 0, effect: { type: "stat", stat: "defense", target: "opponent", stages: -2 } }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/353.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/353.png",
+        evolvesToPokedexId: 354
+    },
+    {
+        pokedexId: 354,
+        name: "BANETTE",
+        types: ["Ghost"],
+        hp: 139,
+        baseStats: { attack: 115, defense: 65, speed: 65 },
+        moves: [
+            { name: "Shadow Claw", type: "Ghost", accuracy: 100, maxPp: 15, power: 70, effect: { type: "crit", chance: 0.125 } }, // High crit niet geïmplementeerd
+            { name: "Sucker Punch", type: "Dark", accuracy: 100, maxPp: 5, power: 70, priority: 1 }, // Werkt alleen als tegenstander aanvallende zet kiest (niet geïmplementeerd)
+            { name: "Phantom Force", type: "Ghost", accuracy: 100, maxPp: 10, power: 90, effect: { type: "two_turn_evade_first" } }, // Twee-beurt, ontwijkt (niet geïmplementeerd)
+            { name: "Curse", type: "Ghost", accuracy: 100, maxPp: 10, power: 0, effect: { type: "curse" } } // Curse effect (Ghost/Non-Ghost) niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/354.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/354.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 355,
+        name: "DUSKULL",
+        types: ["Ghost"],
+        hp: 95,
+        baseStats: { attack: 40, defense: 90, speed: 25 },
+        moves: [
+            { name: "Shadow Sneak", type: "Ghost", accuracy: 100, maxPp: 30, power: 40, priority: 1 },
+            { name: "Will-O-Wisp", type: "Fire", accuracy: 85, maxPp: 15, power: 0, effect: { type: "burn" } }, // Burn niet geïmplementeerd
+            { name: "Pursuit", type: "Dark", accuracy: 100, maxPp: 20, power: 40, effect: { type: "double_power_on_switch" } }, // Dubbele kracht bij wisselen (niet geïmplementeerd)
+            { name: "Confuse Ray", type: "Ghost", accuracy: 100, maxPp: 10, power: 0, effect: { type: "confusion" } } // Confusion niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/355.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/355.png",
+        evolvesToPokedexId: 356
+    },
+    {
+        pokedexId: 356,
+        name: "DUSCLOPS",
+        types: ["Ghost"],
+        hp: 115,
+        baseStats: { attack: 70, defense: 130, speed: 25 },
+        moves: [
+            { name: "Shadow Punch", type: "Ghost", accuracy: 100, maxPp: 20, power: 60, alwaysHits: true },
+            { name: "Ice Punch", type: "Ice", accuracy: 100, maxPp: 15, power: 75, effect: { type: "freeze", chance: 0.1 } }, // Freeze kans niet geïmplementeerd
+            { name: "Fire Punch", type: "Fire", accuracy: 100, maxPp: 15, power: 75, effect: { type: "burn", chance: 0.1 } }, // Burn kans niet geïmplementeerd
+            { name: "Pain Split", type: "Normal", accuracy: 100, maxPp: 20, power: 0, effect: { type: "pain_split" } } // Pain Split niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/356.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/356.png",
+        evolvesToPokedexId: 477 // Dusknoir (Gen 4)
+    },
+    {
+        pokedexId: 357,
+        name: "TROPIUS",
+        types: ["Grass", "Flying"],
+        hp: 174,
+        baseStats: { attack: 68, defense: 83, speed: 51 },
+        moves: [
+            { name: "Razor Leaf", type: "Grass", accuracy: 95, maxPp: 25, power: 55, effect: { type: "crit", chance: 0.125 } }, // High crit niet geïmplementeerd
+            { name: "Aerial Ace", type: "Flying", accuracy: 100, maxPp: 20, power: 60, alwaysHits: true },
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 },
+            { name: "Dragon Dance", type: "Dragon", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat_multi", stats: ["attack", "speed"], target: "self", stages: [1, 1] }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/357.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/357.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 358,
+        name: "CHIMECHO",
+        types: ["Psychic"],
+        hp: 150,
+        baseStats: { attack: 50, defense: 80, speed: 65 },
+        moves: [
+            { name: "Zen Headbutt", type: "Psychic", accuracy: 90, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } }, // Flinch niet geïmplementeerd
+            { name: "Heal Bell", type: "Normal", accuracy: 100, maxPp: 5, power: 0, effect: { type: "heal_party_status" } }, // Heal Bell niet geïmplementeerd
+            { name: "Yawn", type: "Normal", accuracy: 100, maxPp: 10, power: 0, effect: { type: "yawn" } }, // Yawn niet geïmplementeerd
+            { name: "Wrap", type: "Normal", accuracy: 90, maxPp: 20, power: 15, effect: { type: "trap_damage_over_time", turns: "4-5" } } // Trap & damage niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/358.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/358.png",
+        evolvesToPokedexId: null // Evolueert van Chingling (Gen 4)
+    },
+    {
+        pokedexId: 359,
+        name: "ABSOL",
+        types: ["Dark"],
+        hp: 140,
+        baseStats: { attack: 130, defense: 60, speed: 75 },
+        moves: [
+            { name: "Sucker Punch", type: "Dark", accuracy: 100, maxPp: 5, power: 70, priority: 1 }, // Werkt alleen als tegenstander aanvallende zet kiest (niet geïmplementeerd)
+            { name: "Night Slash", type: "Dark", accuracy: 100, maxPp: 15, power: 70, effect: { type: "crit", chance: 0.125 } }, // High crit niet geïmplementeerd
+            { name: "Psycho Cut", type: "Psychic", accuracy: 100, maxPp: 20, power: 70, effect: { type: "crit", chance: 0.125 } }, // High crit niet geïmplementeerd
+            { name: "Swords Dance", type: "Normal", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: "attack", target: "self", stages: 2 }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/359.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/359.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 360,
+        name: "WYNAUT",
+        types: ["Psychic"],
+        hp: 170,
+        baseStats: { attack: 23, defense: 48, speed: 23 },
+        moves: [
+            { name: "Counter", type: "Fighting", accuracy: 100, maxPp: 20, power: 0, priority: -5, effect: { type: "counter_physical" } }, // Counter niet geïmplementeerd
+            { name: "Mirror Coat", type: "Psychic", accuracy: 100, maxPp: 20, power: 0, priority: -5, effect: { type: "counter_special" } }, // Mirror Coat niet geïmplementeerd
+            { name: "Safeguard", type: "Normal", accuracy: 100, maxPp: 25, power: 0, effect: { type: "safeguard" } }, // Safeguard niet geïmplementeerd
+            { name: "Destiny Bond", type: "Ghost", accuracy: 100, maxPp: 5, power: 0, effect: { type: "destiny_bond" } } // Destiny Bond niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/360.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/360.png",
+        evolvesToPokedexId: 202 // Wobbuffet
+    },
+    {
+        pokedexId: 361,
+        name: "SNORUNT",
+        types: ["Ice"],
+        hp: 125,
+        baseStats: { attack: 50, defense: 50, speed: 50 },
+        moves: [
+            { name: "Ice Shard", type: "Ice", accuracy: 100, maxPp: 30, power: 40, priority: 1 },
+            { name: "Bite", type: "Dark", accuracy: 100, maxPp: 25, power: 60, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd
+            { name: "Headbutt", type: "Normal", accuracy: 100, maxPp: 15, power: 70, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd
+            { name: "Spikes", type: "Ground", accuracy: 100, maxPp: 20, power: 0, effect: { type: "entry_hazard", hazard_type: "spikes" } } // Entry hazard niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/361.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/361.png",
+        evolvesToPokedexId: 362 // Moet zijn 362 voor Glalie. De 361 was een typo. Kan ook evolueren naar Froslass (478) in Gen 4+ (female + Dawn Stone)
+    },
+    {
+        pokedexId: 362,
+        name: "GLALIE",
+        types: ["Ice"],
+        hp: 155,
+        baseStats: { attack: 80, defense: 80, speed: 80 },
+        moves: [
+            { name: "Ice Fang", type: "Ice", accuracy: 95, maxPp: 15, power: 65, effect: { type: "flinch_freeze", flinchChance: 0.1, freezeChance: 0.1 } }, // Flinch/Freeze niet geïmplementeerd
+            { name: "Crunch", type: "Dark", accuracy: 100, maxPp: 15, power: 80, effect: { type: "stat_chance", stat: "defense", target: "opponent", stages: -1, chance: 0.2 } },
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 },
+            { name: "Headbutt", type: "Normal", accuracy: 100, maxPp: 15, power: 70, effect: { type: "flinch", chance: 0.3 } } // Flinch niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/362.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/362.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 363,
+        name: "SPHEAL",
+        types: ["Ice", "Water"],
+        hp: 145,
+        baseStats: { attack: 40, defense: 50, speed: 25 },
+        moves: [
+            { name: "Ice Ball", type: "Ice", accuracy: 90, maxPp: 20, power: 30, effect: { type: "rollout_consecutive_hits" } }, // Power verdubbelt per hit (niet geïmplementeerd)
+            { name: "Water Gun", type: "Water", accuracy: 100, maxPp: 25, power: 40 },
+            { name: "Rollout", type: "Rock", accuracy: 90, maxPp: 20, power: 30, effect: { type: "rollout_consecutive_hits" } }, // Power verdubbelt per hit (niet geïmplementeerd)
+            { name: "Defense Curl", type: "Normal", accuracy: 100, maxPp: 40, power: 0, effect: { type: "stat", stat: "defense", target: "self", stages: 1 }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/363.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/363.png",
+        evolvesToPokedexId: 364
+    },
+    {
+        pokedexId: 364,
+        name: "SEALEO",
+        types: ["Ice", "Water"],
+        hp: 165,
+        baseStats: { attack: 60, defense: 70, speed: 45 },
+        moves: [
+            { name: "Aurora Beam", type: "Ice", accuracy: 100, maxPp: 20, power: 65, effect: { type: "stat_chance", stat: "attack", target: "opponent", stages: -1, chance: 0.1 } },
+            { name: "Body Slam", type: "Normal", accuracy: 100, maxPp: 15, power: 85, effect: { type: "paralysis", chance: 0.3 } }, // Paralysis niet geïmplementeerd
+            { name: "Waterfall", type: "Water", accuracy: 100, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } }, // Flinch niet geïmplementeerd
+            { name: "Encore", type: "Normal", accuracy: 100, maxPp: 5, power: 0, effect: { type: "encore" } } // Encore niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/364.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/364.png",
+        evolvesToPokedexId: 365
+    },
+    {
+        pokedexId: 365,
+        name: "WALREIN",
+        types: ["Ice", "Water"],
+        hp: 185,
+        baseStats: { attack: 80, defense: 90, speed: 65 },
+        moves: [
+            { name: "Ice Fang", type: "Ice", accuracy: 95, maxPp: 15, power: 65, effect: { type: "flinch_freeze", flinchChance: 0.1, freezeChance: 0.1 } }, // Flinch/Freeze niet geïmplementeerd
+            { name: "Waterfall", type: "Water", accuracy: 100, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } }, // Flinch niet geïmplementeerd
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 },
+            { name: "Crunch", type: "Dark", accuracy: 100, maxPp: 15, power: 80, effect: { type: "stat_chance", stat: "defense", target: "opponent", stages: -1, chance: 0.2 } }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/365.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/365.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 366,
+        name: "CLAMPERL",
+        types: ["Water"],
+        hp: 110,
+        baseStats: { attack: 64, defense: 85, speed: 32 },
+        moves: [
+            { name: "Clamp", type: "Water", accuracy: 85, maxPp: 15, power: 35, effect: { type: "trap_damage_over_time", turns: "4-5" } }, // Trap & damage niet geïmplementeerd
+            { name: "Water Gun", type: "Water", accuracy: 100, maxPp: 25, power: 40 },
+            { name: "Iron Defense", type: "Steel", accuracy: 100, maxPp: 15, power: 0, effect: { type: "stat", stat: "defense", target: "self", stages: 2 }, alwaysHits: true },
+            { name: "Whirlpool", type: "Water", accuracy: 85, maxPp: 15, power: 35, effect: { type: "trap_damage_over_time", turns: "4-5" } } // Trap & damage niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/366.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/366.png",
+        evolvesToPokedexId: 367 // Evolueert naar Huntail (367) met DeepSeaTooth, of Gorebyss (368) met DeepSeaScale
+    },
+    {
+        pokedexId: 367,
+        name: "HUNTAIL",
+        types: ["Water"],
+        hp: 130,
+        baseStats: { attack: 104, defense: 105, speed: 52 },
+        moves: [
+            { name: "Aqua Tail", type: "Water", accuracy: 90, maxPp: 10, power: 90 },
+            { name: "Crunch", type: "Dark", accuracy: 100, maxPp: 15, power: 80, effect: { type: "stat_chance", stat: "defense", target: "opponent", stages: -1, chance: 0.2 } },
+            { name: "Ice Fang", type: "Ice", accuracy: 95, maxPp: 15, power: 65, effect: { type: "flinch_freeze", flinchChance: 0.1, freezeChance: 0.1 } }, // Flinch/Freeze niet geïmplementeerd
+            { name: "Screech", type: "Normal", accuracy: 85, maxPp: 40, power: 0, effect: { type: "stat", stat: "defense", target: "opponent", stages: -2 } }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/367.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/367.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 368,
+        name: "GOREBYSS",
+        types: ["Water"],
+        hp: 130,
+        baseStats: { attack: 84, defense: 105, speed: 52 },
+        moves: [
+            { name: "Aqua Tail", type: "Water", accuracy: 90, maxPp: 10, power: 90 },
+            { name: "Psychic Fangs", type: "Psychic", accuracy: 100, maxPp: 10, power: 85 }, // Gen 7 move, als alternatief voor SpA Psychic
+            { name: "Draining Kiss", type: "Fairy", accuracy: 100, maxPp: 10, power: 50, effect: { type: "drain", percentage: 0.75 } }, // Drain niet geïmplementeerd
+            { name: "Amnesia", type: "Psychic", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: "defense", target: "self", stages: 2 }, alwaysHits: true } // Normaal Sp.Def
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/368.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/368.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 369,
+        name: "RELICANTH",
+        types: ["Water", "Rock"],
+        hp: 175,
+        baseStats: { attack: 90, defense: 130, speed: 55 },
+        moves: [
+            { name: "Head Smash", type: "Rock", accuracy: 80, maxPp: 5, power: 150, effect: { type: "recoil", percentage: 0.5 } }, // Recoil niet geïmplementeerd
+            { name: "Waterfall", type: "Water", accuracy: 100, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } }, // Flinch niet geïmplementeerd
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 },
+            { name: "Yawn", type: "Normal", accuracy: 100, maxPp: 10, power: 0, effect: { type: "yawn" } } // Yawn niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/369.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/369.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 370,
+        name: "LUVDISC",
+        types: ["Water"],
+        hp: 118,
+        baseStats: { attack: 30, defense: 55, speed: 97 },
+        moves: [
+            { name: "Waterfall", type: "Water", accuracy: 100, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } }, // Flinch niet geïmplementeerd
+            { name: "Charm", type: "Fairy", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: "attack", target: "opponent", stages: -2 } }, // Was Normal
+            { name: "Agility", type: "Psychic", accuracy: 100, maxPp: 30, power: 0, effect: { type: "stat", stat: "speed", target: "self", stages: 2 }, alwaysHits: true },
+            { name: "Sweet Kiss", type: "Fairy", accuracy: 75, maxPp: 10, power: 0, effect: { type: "confusion" } } // Was Normal, Confusion niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/370.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/370.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 371,
+        name: "BAGON",
+        types: ["Dragon"],
+        hp: 120,
+        baseStats: { attack: 75, defense: 60, speed: 50 },
+        moves: [
+            { name: "Headbutt", type: "Normal", accuracy: 100, maxPp: 15, power: 70, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd
+            { name: "Dragon Claw", type: "Dragon", accuracy: 100, maxPp: 15, power: 80 },
+            { name: "Rock Slide", type: "Rock", accuracy: 90, maxPp: 10, power: 75, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd
+            { name: "Scary Face", type: "Normal", accuracy: 100, maxPp: 10, power: 0, effect: { type: "stat", stat: "speed", target: "opponent", stages: -2 }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/371.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/371.png",
+        evolvesToPokedexId: 372 // Gecorrigeerd van 371 naar 372
+    },
+    {
+        pokedexId: 372,
+        name: "SHELGON",
+        types: ["Dragon"],
+        hp: 140,
+        baseStats: { attack: 95, defense: 100, speed: 50 },
+        moves: [
+            { name: "Dragon Claw", type: "Dragon", accuracy: 100, maxPp: 15, power: 80 },
+            { name: "Crunch", type: "Dark", accuracy: 100, maxPp: 15, power: 80, effect: { type: "stat_chance", stat: "defense", target: "opponent", stages: -1, chance: 0.2 } },
+            { name: "Protect", type: "Normal", accuracy: 100, maxPp: 10, power: 0, priority: 4, effect: { type: "protect" } }, // Protect niet geïmplementeerd
+            { name: "Headbutt", type: "Normal", accuracy: 100, maxPp: 15, power: 70, effect: { type: "flinch", chance: 0.3 } } // Flinch niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/372.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/372.png",
+        evolvesToPokedexId: 373 // Gecorrigeerd van 372 naar 373
+    },
+    {
+        pokedexId: 373,
+        name: "SALAMENCE",
+        types: ["Dragon", "Flying"],
+        hp: 170,
+        baseStats: { attack: 135, defense: 80, speed: 100 },
+        moves: [
+            { name: "Dragon Claw", type: "Dragon", accuracy: 100, maxPp: 15, power: 80 },
+            { name: "Fly", type: "Flying", accuracy: 95, maxPp: 15, power: 90, effect: { type: "two_turn_evade_first" } }, // Twee-beurt, ontwijkt (niet geïmplementeerd)
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 },
+            { name: "Dragon Dance", type: "Dragon", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat_multi", stats: ["attack", "speed"], target: "self", stages: [1, 1] }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/373.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/373.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 374,
+        name: "BELDUM",
+        types: ["Steel", "Psychic"],
+        hp: 115,
+        baseStats: { attack: 55, defense: 80, speed: 30 },
+        moves: [
+            { name: "Take Down", type: "Normal", accuracy: 85, maxPp: 20, power: 90, effect: { type: "recoil", percentage: 0.25 } }, // Recoil niet geïmplementeerd
+            { name: "Iron Head", type: "Steel", accuracy: 100, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd (leert als Metang)
+            { name: "Zen Headbutt", type: "Psychic", accuracy: 90, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } }, // Flinch niet geïmplementeerd (leert als Metang)
+            { name: "Harden", type: "Normal", accuracy: 100, maxPp: 30, power: 0, effect: { type: "stat", stat: "defense", target: "self", stages: 1 }, alwaysHits: true } // Conceptueel
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/374.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/374.png",
+        evolvesToPokedexId: 375
+    },
+    {
+        pokedexId: 375,
+        name: "METANG",
+        types: ["Steel", "Psychic"],
+        hp: 135,
+        baseStats: { attack: 75, defense: 100, speed: 50 },
+        moves: [
+            { name: "Meteor Mash", type: "Steel", accuracy: 90, maxPp: 10, power: 90, effect: { type: "stat_chance", stat: "attack", target: "self", stages: 1, chance: 0.2 } },
+            { name: "Zen Headbutt", type: "Psychic", accuracy: 90, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } }, // Flinch niet geïmplementeerd
+            { name: "Bullet Punch", type: "Steel", accuracy: 100, maxPp: 30, power: 40, priority: 1 },
+            { name: "Rock Slide", type: "Rock", accuracy: 90, maxPp: 10, power: 75, effect: { type: "flinch", chance: 0.3 } } // Flinch niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/375.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/375.png",
+        evolvesToPokedexId: 376
+    },
+    {
+        pokedexId: 376,
+        name: "METAGROSS",
+        types: ["Steel", "Psychic"],
+        hp: 155,
+        baseStats: { attack: 135, defense: 130, speed: 70 },
+        moves: [
+            { name: "Meteor Mash", type: "Steel", accuracy: 90, maxPp: 10, power: 90, effect: { type: "stat_chance", stat: "attack", target: "self", stages: 1, chance: 0.2 } },
+            { name: "Zen Headbutt", type: "Psychic", accuracy: 90, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } }, // Flinch niet geïmplementeerd
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 },
+            { name: "Hammer Arm", type: "Fighting", accuracy: 90, maxPp: 10, power: 100, effect: { type: "stat", stat: "speed", target: "self", stages: -1 } }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/376.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/376.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 377,
+        name: "REGIROCK",
+        types: ["Rock"],
+        hp: 155,
+        baseStats: { attack: 100, defense: 200, speed: 50 },
+        moves: [
+            { name: "Stone Edge", type: "Rock", accuracy: 80, maxPp: 5, power: 100, effect: { type: "crit", chance: 0.125 } }, // High crit niet geïmplementeerd
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 },
+            { name: "Hammer Arm", type: "Fighting", accuracy: 90, maxPp: 10, power: 100, effect: { type: "stat", stat: "speed", target: "self", stages: -1 } },
+            { name: "Curse", type: "Ghost", accuracy: 100, maxPp: 10, power: 0, effect: { type: "stat_multi", stats: ["attack", "defense", "speed"], target: "self", stages: [1, 1, -1] } } // Aangepast Curse effect
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/377.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/377.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 378,
+        name: "REGICE",
+        types: ["Ice"],
+        hp: 155,
+        baseStats: { attack: 50, defense: 100, speed: 50 },
+        moves: [
+            { name: "Ice Punch", type: "Ice", accuracy: 100, maxPp: 15, power: 75, effect: { type: "freeze", chance: 0.1 } }, // Freeze kans niet geïmplementeerd
+            { name: "Rock Smash", type: "Fighting", accuracy: 100, maxPp: 15, power: 40, effect: { type: "stat_chance", stat: "defense", target: "opponent", stages: -1, chance: 0.5 } },
+            { name: "Hammer Arm", type: "Fighting", accuracy: 90, maxPp: 10, power: 100, effect: { type: "stat", stat: "speed", target: "self", stages: -1 } },
+            { name: "Amnesia", type: "Psychic", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: "defense", target: "self", stages: 2 }, alwaysHits: true } // Normaal Sp.Def
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/378.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/378.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 379,
+        name: "REGISTEEL",
+        types: ["Steel"],
+        hp: 155,
+        baseStats: { attack: 75, defense: 150, speed: 50 },
+        moves: [
+            { name: "Iron Head", type: "Steel", accuracy: 100, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 },
+            { name: "Rock Slide", type: "Rock", accuracy: 90, maxPp: 10, power: 75, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd
+            { name: "Curse", type: "Ghost", accuracy: 100, maxPp: 10, power: 0, effect: { type: "stat_multi", stats: ["attack", "defense", "speed"], target: "self", stages: [1, 1, -1] } } // Aangepast Curse effect
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/379.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/379.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 380,
+        name: "LATIAS",
+        types: ["Dragon", "Psychic"],
+        hp: 155,
+        baseStats: { attack: 80, defense: 90, speed: 110 },
+        moves: [
+            { name: "Dragon Claw", type: "Dragon", accuracy: 100, maxPp: 15, power: 80 },
+            { name: "Zen Headbutt", type: "Psychic", accuracy: 90, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } }, // Flinch niet geïmplementeerd
+            { name: "Fly", type: "Flying", accuracy: 95, maxPp: 15, power: 90, effect: { type: "two_turn_evade_first" } }, // Twee-beurt, ontwijkt (niet geïmplementeerd)
+            { name: "Recover", type: "Normal", accuracy: 100, maxPp: 10, power: 0, effect: { type: "heal_percentage", percentage: 0.5 } } // Heal niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/380.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/380.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 381,
+        name: "LATIOS",
+        types: ["Dragon", "Psychic"],
+        hp: 155,
+        baseStats: { attack: 90, defense: 80, speed: 110 },
+        moves: [
+            { name: "Dragon Claw", type: "Dragon", accuracy: 100, maxPp: 15, power: 80 },
+            { name: "Zen Headbutt", type: "Psychic", accuracy: 90, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } }, // Flinch niet geïmplementeerd
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 },
+            { name: "Dragon Dance", type: "Dragon", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat_multi", stats: ["attack", "speed"], target: "self", stages: [1, 1] }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/381.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/381.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 382,
+        name: "KYOGRE",
+        types: ["Water"],
+        hp: 175,
+        baseStats: { attack: 100, defense: 90, speed: 90 },
+        moves: [
+            { name: "Waterfall", type: "Water", accuracy: 100, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } }, // Flinch niet geïmplementeerd
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 },
+            { name: "Body Slam", type: "Normal", accuracy: 100, maxPp: 15, power: 85, effect: { type: "paralysis", chance: 0.3 } }, // Paralysis niet geïmplementeerd
+            { name: "Aqua Ring", type: "Water", accuracy: 100, maxPp: 20, power: 0, effect: { type: "aqua_ring_heal" } } // Aqua Ring heal niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/382.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/382.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 383,
+        name: "GROUDON",
+        types: ["Ground"],
+        hp: 175,
+        baseStats: { attack: 150, defense: 140, speed: 90 },
+        moves: [
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 },
+            { name: "Stone Edge", type: "Rock", accuracy: 80, maxPp: 5, power: 100, effect: { type: "crit", chance: 0.125 } }, // High crit niet geïmplementeerd
+            { name: "Fire Punch", type: "Fire", accuracy: 100, maxPp: 15, power: 75, effect: { type: "burn", chance: 0.1 } }, // Burn kans niet geïmplementeerd
+            { name: "Swords Dance", type: "Normal", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: "attack", target: "self", stages: 2 }, alwaysHits: true }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/383.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/383.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 384,
+        name: "RAYQUAZA",
+        types: ["Dragon", "Flying"],
+        hp: 180,
+        baseStats: { attack: 150, defense: 90, speed: 95 },
+        moves: [
+            { name: "Dragon Ascent", type: "Flying", accuracy: 100, maxPp: 5, power: 120, effect: { type: "stat_self_multi", stats: ["defense"], target: "self", stages: [-1] } }, // Normaal Def & SpD omlaag
+            { name: "Dragon Claw", type: "Dragon", accuracy: 100, maxPp: 15, power: 80 },
+            { name: "Earthquake", type: "Ground", accuracy: 100, maxPp: 10, power: 100 },
+            { name: "Extreme Speed", type: "Normal", accuracy: 100, maxPp: 5, power: 80, priority: 2 }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/384.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/384.png",
+        evolvesToPokedexId: null
+    },
+    {
+        pokedexId: 385,
+        name: "JIRACHI",
+        types: ["Steel", "Psychic"],
+        hp: 175,
+        baseStats: { attack: 100, defense: 100, speed: 100 },
+        moves: [
+            { name: "Iron Head", type: "Steel", accuracy: 100, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.3 } }, // Flinch niet geïmplementeerd
+            { name: "Zen Headbutt", type: "Psychic", accuracy: 90, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } }, // Flinch niet geïmplementeerd
+            { name: "Fire Punch", type: "Fire", accuracy: 100, maxPp: 15, power: 75, effect: { type: "burn", chance: 0.1 } }, // Burn kans niet geïmplementeerd
+            { name: "Wish", type: "Normal", accuracy: 100, maxPp: 10, power: 0, effect: { type: "wish" } } // Wish niet geïmplementeerd
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/385.png",
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/385.png",
+        evolvesToPokedexId: null
+    },
+    { // Frogadier
+        pokedexId: 657, name: "FROGADIER", types: ["Water"], hp: 129, baseStats: { attack: 63, defense: 52, speed: 97 },
+        moves: [ { name: "Water Pulse", type: "Water", accuracy: 100, maxPp: 20, power: 60, effect: { type: "confuse", chance: 0.2 } }, { name: "Lick", type: "Ghost", accuracy: 100, maxPp: 30, power: 30, effect: { type: "status", condition: "PAR", chance: 0.3 } }, { name: "Round", type: "Normal", accuracy: 100, maxPp: 15, power: 60 }, { name: "Smokescreen", type: "Normal", accuracy: 100, maxPp: 20, power: 0, effect: { type: "stat", stat: ["accuracy"], target: "opponent", stages: -1 } } ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/657.png", spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/657.png", evolvesToPokedexId: 658,
+        isSpecialCodePokemon: true
+    },
+    { // Greninja
+        pokedexId: 658, name: "GRENINJA", types: ["Water", "Dark"], hp: 147, baseStats: { attack: 95, defense: 67, speed: 122 },
+        moves: [ { name: "Water Shuriken", type: "Water", accuracy: 100, maxPp: 20, power: 15, priority: 1, multihit: [2,5] }, { name: "Night Slash", type: "Dark", accuracy: 100, maxPp: 15, power: 70, highCritRatio: true }, { name: "Extrasensory", type: "Psychic", accuracy: 100, maxPp: 20, power: 80, effect: {type: "flinch", chance: 0.1} }, { name: "Shadow Sneak", type: "Ghost", accuracy: 100, maxPp: 30, power: 40, priority: 1 } ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/658.png", spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/658.png", evolvesToPokedexId: null,
+        isSpecialCodePokemon: true
+    },
+    {
+        pokedexId: 656, name: "FROAKIE", types: ["Water"], hp: 116, baseStats: { attack: 56, defense: 40, speed: 71 },
+        moves: [ { name: "Pound", type: "Normal", accuracy: 100, maxPp: 35, power: 40 }, { name: "Bubble", type: "Water", accuracy: 100, maxPp: 30, power: 40, effect: { type: "stat", stat: ["speed"], target: "opponent", stages: -1, chance: 0.1 } }, { name: "Quick Attack", type: "Normal", accuracy: 100, maxPp: 30, power: 40, priority: 1 }, { name: "Lick", type: "Ghost", accuracy: 100, maxPp: 30, power: 30, effect: { type: "status", condition: "PAR", chance: 0.3 } } ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/656.png", spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/656.png", evolvesToPokedexId: 657,
+        isSpecialCodePokemon: true
+    },
+    {
+        pokedexId: 386,
+        name: "DEOXYS", // Normal Forme
+        types: ["Psychic"],
+        hp: 125,
+        baseStats: { attack: 150, defense: 50, speed: 150 }, // Normal Forme stats
+        moves: [
+            { name: "Psycho Boost", type: "Psychic", accuracy: 90, maxPp: 5, power: 140, effect: { type: "stat_self_multi", stats: ["attack"], target: "self", stages: [-2] } }, // Normaal SpA omlaag
+            { name: "Zen Headbutt", type: "Psychic", accuracy: 90, maxPp: 15, power: 80, effect: { type: "flinch", chance: 0.2 } }, // Flinch niet geïmplementeerd
+            { name: "Superpower", type: "Fighting", accuracy: 100, maxPp: 5, power: 120, effect: { type: "stat_self_multi", stats: ["attack", "defense"], target: "self", stages: [-1, -1] } },
+            { name: "Extreme Speed", type: "Normal", accuracy: 100, maxPp: 5, power: 80, priority: 2 }
+        ],
+        spriteFront: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/386.png", // Normal Forme
+        spriteBack: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/386.png", // Normal Forme
+        evolvesToPokedexId: null
+    }
+];
 
-        const gymLeadersData = {
+    const gymLeadersData = {
             "Misty": {
                 name: "Misty",
                 cardUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Evolutions_Misty%E2%80%99s-Determination-1.jpg",
@@ -3824,19 +6263,301 @@ const eliteFourData = {
     "Bruno": {
         name: "Bruno",
         cardUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Battle-Styles_Bruno-1.jpg",
-        pokemonTeam: ["MACHAMP", "HITMONLEE", "HITMONCHAN", "ONIX", "GOLEM", "HERACROSS"], // MACHAMP (68), HITMONLEE (106), HITMONCHAN (107), ONIX (95), GOLEM (76), HERACROSS (214)
+        pokemonTeam: ["MACHAMP", "HITMONLEE", "HITMONCHAN", "ONIX", "GOLEM", "HERACROSS"],
         dialog: "Hahaha! I am Bruno of the Elite Four! I've lived and trained with my Fighting Pokémon! And I'm ready to take you on! Bring it!"
+    },
+    "Lance": {
+        name: "Lance",
+        cardUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Lance-Full-Art-silver-tempest-SWSH-192195.jpg",
+        pokemonTeam: ["SEADRA", "DRAGONAIR", "CHARIZARD", "DRAGONITE", "LUGIA", "RAYQUAZA"],
+        dialog: "You dare challenge the master of Dragon Pokémon? Prepare to be overwhelmed by their might!"
+    },
+    "Karen": {
+        name: "Karen",
+        cardUrl: "https://www.pokemonkaart.nl/wp-content/uploads/XY-Promos_Karen-1.jpg",
+        pokemonTeam: ["EEVEE", "UMBREON", "HOUNDOOM", "MURKROW", "METAGROSS", "REGIROCK"],
+        dialog: "Strong Pokémon. Weak Pokémon. That is only the selfish perception of people. Truly skilled trainers should try to win with their favorites."
+    },
+    "Prof. Oak": {
+        name: "Prof. Oak",
+        cardUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Cosmic-Eclipse_Professor-Oak%E2%80%99s-Setup-1.jpg",
+        pokemonTeam: ["TAUROS", "PINSIR", "BLASTOISE", "TYRANITAR", "LATIAS", "LATIOS"],
+        dialog: "Welcome to the world of Pokémon! Let's see what you've learned on your journey!"
+    },
+    "Iono": {
+        name: "Iono",
+        cardUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Iono-269-paldea-evolved.jpg",
+        pokemonTeam: ["ELECTRODE", "RAICHU", "LANTURN", "STEELIX", "TROPIUS", "RAIKOU"],
+        dialog: "Whosawhatsit? It's Iono, the Supercharged Streamer! Get ready for a shocking battle, viewers!"
+    },
+    "Giovanni": {
+        name: "Giovanni",
+        cardUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Hidden-Fates_Giovanni%E2%80%99s-Exile.jpg",
+        pokemonTeam: ["PERSIAN", "KINGLER", "RHYDON", "MACHAMP", "CLOYSTER", "MEWTWO"],
+        dialog: "So, you've made it this far. Impressive. But Team Rocket will always triumph!"
+    },
+    "Koga": {
+        name: "Koga",
+        cardUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Unbroken-Bonds_Koga%E2%80%99s-Trap-1.jpg",
+        pokemonTeam: ["MUK", "TENTACRUEL", "GOLBAT", "WEEZING", "ARBOK", "ARTICUNO"],
+        dialog: "A ninja's duty is to misdirect and confuse. Prepare for a taste of poison and illusion!"
     }
 };
 
+const pokemonLeagueTrainers = [
+    {
+        name: "Lance",
+        cardUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Lance-Full-Art-silver-tempest-SWSH-192195.jpg",
+        pokemonTeam: ["SEADRA", "DRAGONAIR", "CHARIZARD", "DRAGONITE", "LUGIA", "RAYQUAZA"],
+        dialog: "You dare challenge the might of Dragon-type Pokémon?"
+    },
+    {
+        name: "Karen",
+        cardUrl: "https://www.pokemonkaart.nl/wp-content/uploads/XY-Promos_Karen-1.jpg",
+        pokemonTeam: ["EEVEE", "UMBREON", "HOUNDOOM", "MURKROW", "METAGROSS", "REGIROCK"],
+        dialog: "Strong Pokémon. Weak Pokémon. That is only the selfish perception of people."
+    },
+    {
+        name: "Prof. Oak",
+        cardUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Cosmic-Eclipse_Professor-Oak%E2%80%99s-Setup-1.jpg",
+        pokemonTeam: ["TAUROS", "PINSIR", "BLASTOISE", "TYRANITAR", "LATIAS", "LATIOS"],
+        dialog: "Your Pokémon journey has truly begun! Let's see what you've learned!"
+    },
+    {
+        name: "Iono",
+        cardUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Iono-269-paldea-evolved.jpg",
+        pokemonTeam: ["ELECTRODE", "RAICHU", "LANTURN", "STEELIX", "TROPIUS", "RAIKOU"],
+        dialog: "Whosawhatsit? It's Iono, the Supercharged Streamer! Get ready for a shocking battle, viewers!"
+    },
+    {
+        name: "Giovanni",
+        cardUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Hidden-Fates_Giovanni%E2%80%99s-Exile.jpg",
+        pokemonTeam: ["PERSIAN", "KINGLER", "RHYDON", "MACHAMP", "CLOYSTER", "MEWTWO"],
+        dialog: "So, you've made it this far. Impressive. But Team Rocket will always triumph!"
+    },
+    {
+        name: "Koga",
+        cardUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Unbroken-Bonds_Koga%E2%80%99s-Trap-1.jpg",
+        pokemonTeam: ["MUK", "TENTACRUEL", "GOLBAT", "WEEZING", "ARBOK", "ARTICUNO"],
+        dialog: "A ninja's duty is to misdirect and confuse. Prepare for a taste of poison and illusion!"
+    },
+    {
+        name: "Erika",
+        cardUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Erikas-Invitation-203-151.jpg",
+        badgeName: "Rainbow Badge",
+        badgeUrl: "https://archives.bulbagarden.net/media/upload/thumb/a/a6/Rainbow_Badge.png/50px-Rainbow_Badge.png",
+        pokemonTeam: ["VILEPLUME", "VICTREEBEL", "TANGELA", "EXEGGUTOR", "BELLOSSOM", "ROSELIA"],
+        dialog: "My grass Pokémon will mesmerize you."
+    },
+    {
+        name: "Blaine",
+        cardUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Dragon-Majesty_Blaine%E2%80%99s-Last-Stand.jpg",
+        badgeName: "Volcano Badge",
+        badgeUrl: "https://archives.bulbagarden.net/media/upload/thumb/1/12/Volcano_Badge.png/50px-Volcano_Badge.png",
+        pokemonTeam: ["ARCANINE", "RAPIDASH", "MAGMAR", "NINETALES", "TYPHLOSION", "TORKOAL"],
+        dialog: "My fiery Pokémon will turn you to ash!"
+    },
+    {
+        name: "Sabrina",
+        cardUrl: "https://www.pokemonkaart.nl/wp-content/uploads/Team-Up_Sabrina%E2%80%99s-Suggestion.jpg",
+        badgeName: "Marsh Badge",
+        badgeUrl: "https://archives.bulbagarden.net/media/upload/thumb/6/6f/Marsh_Badge.png/50px-Marsh_Badge.png",
+        pokemonTeam: ["MR. MIME", "HYPNO", "ALAKAZAM", "ESPEON", "GARDEVOIR", "SLOWKING"],
+        dialog: "My psychic powers are unmatched!"
+    }
+];
+let currentLeagueOrder = [];
+const teamRocketCardData = {
+    name: "Team Rocket's Handiwork",
+    url: "https://www.pokemonkaart.nl/wp-content/uploads/Fates-Collide_Team-Rocket%E2%80%99s-Handiwork.jpg",
+    type: 'Special Trainer'
+};
+
+let displayedCardCollection = [];
+let currentCardIndex = 0;
+let currentFilteredTcgCards = [];
+let revealedTcgCards = [];
+let currentRevealedTcgCardIndex = 0;
+
+// --- Functies voor wachtwoordbeheer ---
+function generatePassword() {
+    if (!selectedTrainerData) {
+        alert("No game data to generate a password from.");
+        return;
+    }
+    try {
+        const exportData = {
+            name: selectedTrainerData.name,
+            imageUrl: selectedTrainerData.imageUrl,
+            coins: selectedTrainerData.coins,
+            gold: selectedTrainerData.gold || 0, // NIEUW
+            inventory: selectedTrainerData.inventory,
+            team: selectedTrainerData.team.map(p => p ? { pokedexId: p.pokedexId, currentHP: p.currentHP, maxHP: p.maxHP, status: p.status, isShiny: p.isShiny, moves: p.moves.map(m => ({name: m.name, currentPp: m.currentPp})), id: p.id, originalEvolutionData: p.originalEvolutionData } : null).filter(p => p),
+            pcBox: selectedTrainerData.pcBox.map(p => p ? { pokedexId: p.pokedexId, currentHP: p.currentHP, maxHP: p.maxHP, status: p.status, isShiny: p.isShiny, moves: p.moves.map(m => ({name: m.name, currentPp: m.currentPp})), id: p.id, originalEvolutionData: p.originalEvolutionData } : null).filter(p => p),
+            defeatedGymLeaders: selectedTrainerData.defeatedGymLeaders,
+            defeatedEliteFourMembers: selectedTrainerData.defeatedEliteFourMembers,
+            collectedTcgCards: selectedTrainerData.collectedTcgCards.map(c => ({ id: c.id, pokemonGameName: c.pokemonGameName, pokedexId: c.pokedexId, spriteUrl: c.spriteUrl, tcgCardName: c.tcgCardName, tcgSet: c.tcgSet || null })),
+            collectedSpecialCards: selectedTrainerData.collectedSpecialCards || [],
+            pokedexSeen: selectedTrainerData.pokedexSeen || {},
+            pokedexShinySeen: selectedTrainerData.pokedexShinySeen || {},
+            claimedFroakie: selectedTrainerData.claimedFroakie || false,
+            claimedAshItems: selectedTrainerData.claimedAshItems || false,
+            hasChosenStarter: selectedTrainerData.hasChosenStarter,
+            currentLeagueOpponentIndex: selectedTrainerData.currentLeagueOpponentIndex || 0,
+            leagueBattlesWon: selectedTrainerData.leagueBattlesWon || 0,
+            defeatedPokemonLeague: selectedTrainerData.defeatedPokemonLeague || false,
+            teamRocketDefeatedCount: selectedTrainerData.teamRocketDefeatedCount || 0,
+            defeatedAllTeamRocket: selectedTrainerData.defeatedAllTeamRocket || false,
+            isMenuMusicEnabled: isMenuMusicEnabled,
+            isBattleMusicEnabled: isBattleMusicEnabled
+        };
+        const jsonString = JSON.stringify(exportData);
+        const base64String = btoa(jsonString);
+        generatedPasswordArea.value = base64String;
+        alert("Password generated and copied to the text area. Save it securely!");
+    } catch (error) {
+        console.error("Error generating password:", error);
+        alert("Could not generate password. See console for details.");
+        generatedPasswordArea.value = "Error generating password.";
+    }
+}
+
+function loadFromPassword() {
+    const base64String = inputPasswordArea.value.trim();
+    if (!base64String) {
+        alert("Please enter a password.");
+        return;
+    }
+    try {
+        const jsonString = atob(base64String);
+        const importedData = JSON.parse(jsonString);
+
+        if (!importedData || typeof importedData.name !== 'string' || !Array.isArray(importedData.team)) {
+            throw new Error("Invalid password format.");
+        }
+
+        const baseTrainer = trainersData[importedData.name] || Object.values(trainersData)[0];
+        selectedTrainerData = JSON.parse(JSON.stringify(baseTrainer));
+
+        selectedTrainerData.coins = parseInt(importedData.coins) || 0;
+        selectedTrainerData.gold = parseInt(importedData.gold) || 0; // NIEUW
+        selectedTrainerData.inventory = importedData.inventory || { "Poke Ball": 5, "Great Ball": 0, "Ultra Ball": 0, "Master Ball": 0, "Shiny Stone": 0, "Evolution Stone": 1, "Perma Evolution Stone": 0, "TCG Pack": 0 };
+        const defaultInv = { "Poke Ball": 5, "Great Ball": 0, "Ultra Ball": 0, "Master Ball": 0, "Shiny Stone": 0, "Evolution Stone": 1, "Perma Evolution Stone": 0, "TCG Pack": 0 };
+        for (const itemKey in defaultInv) {
+            if (typeof selectedTrainerData.inventory[itemKey] === 'undefined') {
+                selectedTrainerData.inventory[itemKey] = defaultInv[itemKey];
+            }
+        }
+
+        selectedTrainerData.defeatedGymLeaders = importedData.defeatedGymLeaders || [];
+        selectedTrainerData.defeatedEliteFourMembers = importedData.defeatedEliteFourMembers || [];
+        selectedTrainerData.collectedTcgCards = (importedData.collectedTcgCards || []).map(c => ({ ...c, tcgSet: c.tcgSet || "Unknown Set" }));
+        selectedTrainerData.collectedSpecialCards = importedData.collectedSpecialCards || [];
+        selectedTrainerData.pokedexSeen = importedData.pokedexSeen || {};
+        selectedTrainerData.pokedexShinySeen = importedData.pokedexShinySeen || {};
+        selectedTrainerData.claimedFroakie = importedData.claimedFroakie || false;
+        selectedTrainerData.claimedAshItems = importedData.claimedAshItems || false;
+        selectedTrainerData.hasChosenStarter = typeof importedData.hasChosenStarter === 'boolean' ? importedData.hasChosenStarter : true;
+
+        selectedTrainerData.currentLeagueOpponentIndex = importedData.currentLeagueOpponentIndex || 0;
+        selectedTrainerData.leagueBattlesWon = importedData.leagueBattlesWon || 0;
+        selectedTrainerData.defeatedPokemonLeague = importedData.defeatedPokemonLeague || false;
+
+        selectedTrainerData.teamRocketDefeatedCount = importedData.teamRocketDefeatedCount || 0;
+        selectedTrainerData.defeatedAllTeamRocket = importedData.defeatedAllTeamRocket || false;
+
+        isMenuMusicEnabled = typeof importedData.isMenuMusicEnabled === 'boolean' ? importedData.isMenuMusicEnabled : true;
+        isBattleMusicEnabled = typeof importedData.isBattleMusicEnabled === 'boolean' ? importedData.isBattleMusicEnabled : true;
+        btnToggleMenuMusicOpt.textContent = `MENU MUSIC: ${isMenuMusicEnabled ? 'ON' : 'OFF'}`;
+        btnToggleBattleMusicOpt.textContent = `BATTLE MUSIC: ${isBattleMusicEnabled ? 'ON' : 'OFF'}`;
+
+
+        selectedTrainerData.team = restoreFullPokemonList(importedData.team, false);
+        selectedTrainerData.pcBox = restoreFullPokemonList(importedData.pcBox, false);
+
+
+        if (chosenTrainerImageMainMenu && selectedTrainerData.imageUrl) {
+            chosenTrainerImageMainMenu.src = selectedTrainerData.imageUrl;
+            chosenTrainerImageMainMenu.alt = selectedTrainerData.name;
+        }
+        updateCurrencyDisplays();
+        saveGame();
+        alert("Game data loaded successfully from password!");
+        switchScreen('mainMenu');
+        inputPasswordArea.value = "";
+
+    } catch (error) {
+        console.error("Error loading from password:", error);
+        alert("Invalid or corrupted password. Could not load game data. Error: " + error.message);
+    }
+}
+
+function restoreFullPokemonList(listData, isOpponentTeam = false) {
+    return (listData || []).map(savedPok => {
+        if (!savedPok || typeof savedPok.pokedexId === 'undefined') return null;
+        const baseData = pokemonPool.find(p => p.pokedexId === savedPok.pokedexId);
+        if (!baseData) {
+            console.warn(`Pokémon with PokedexID ${savedPok.pokedexId} not found in current pool. Skipping.`);
+            return null;
+        }
+        let fullPokemon = createPokemonFromData({...baseData, isShiny: savedPok.isShiny}, isOpponentTeam, !isOpponentTeam, false);
+        fullPokemon.id = savedPok.id || fullPokemon.id;
+        fullPokemon.currentHP = Math.min(savedPok.currentHP, fullPokemon.maxHP);
+        fullPokemon.status = savedPok.status || null;
+        fullPokemon.originalEvolutionData = savedPok.originalEvolutionData || null;
+        if (fullPokemon.originalEvolutionData) {
+             const originalBase = pokemonPool.find(p => p.pokedexId === fullPokemon.originalEvolutionData.pokedexId);
+             if (originalBase) {
+                 fullPokemon.moves = originalBase.moves.map(baseMove => {
+                    const savedMoveData = savedPok.moves.find(sm => sm.name === baseMove.name);
+                    return {
+                        ...baseMove,
+                        currentPp: (savedMoveData && typeof savedMoveData.currentPp !== 'undefined') ? savedMoveData.currentPp : baseMove.maxPp
+                    };
+                });
+             }
+        } else if (savedPok.moves && Array.isArray(savedPok.moves)) {
+            fullPokemon.moves = baseData.moves.map(baseMove => {
+                const savedMoveData = savedPok.moves.find(sm => sm.name === baseMove.name);
+                return {
+                    ...baseMove,
+                    currentPp: (savedMoveData && typeof savedMoveData.currentPp !== 'undefined') ? savedMoveData.currentPp : baseMove.maxPp
+                };
+            });
+        } else {
+             fullPokemon.moves = baseData.moves.map(m => ({ ...m, currentPp: m.maxPp }));
+        }
+        const shinyBaseUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon";
+        const currentPokedexIdForSprite = fullPokemon.pokedexId;
+        const currentBaseSpriteData = pokemonPool.find(p => p.pokedexId === currentPokedexIdForSprite) || {};
+        fullPokemon.spriteFrontUrl = fullPokemon.isShiny ? `${shinyBaseUrl}/shiny/${currentPokedexIdForSprite}.png` : (currentBaseSpriteData.spriteFront || `${shinyBaseUrl}/${currentPokedexIdForSprite}.png`);
+        fullPokemon.spriteBackUrl = fullPokemon.isShiny ? `${shinyBaseUrl}/back/shiny/${currentPokedexIdForSprite}.png` : (currentBaseSpriteData.spriteBack || `${shinyBaseUrl}/back/${currentPokedexIdForSprite}.png`);
+        return fullPokemon;
+    }).filter(p => p);
+}
+
 
 // --- Helper Functions ---
-function createPokemon(name, types, hp, baseStats, moves, spriteFront, spriteBack, isShiny = false, pokedexIdInput = null) {
-    const shinyBaseUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon";
-    const idFromSprite = spriteFront.split('/').pop().split('.')[0];
-    const effectivePokedexId = pokedexIdInput !== null ? pokedexIdInput : parseInt(idFromSprite);
+function markAsSeen(pokedexId, isShiny) {
+    if (!selectedTrainerData) return;
+    if (!selectedTrainerData.pokedexSeen) selectedTrainerData.pokedexSeen = {};
+    if (!selectedTrainerData.pokedexShinySeen) selectedTrainerData.pokedexShinySeen = {};
 
+    if (isShiny) {
+        selectedTrainerData.pokedexShinySeen[pokedexId] = true;
+    }
+    selectedTrainerData.pokedexSeen[pokedexId] = true;
+}
+
+function createPokemon(name, types, hp, baseStats, moves, spriteFront, spriteBack, isShiny = false, pokedexIdInput = null, shouldMarkSeen = true) {
+    const shinyBaseUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon";
+    const idFromSprite = spriteFront ? spriteFront.split('/').pop().split('.')[0] : (pokedexIdInput || 0).toString();
+    const effectivePokedexId = pokedexIdInput !== null ? pokedexIdInput : parseInt(idFromSprite);
     const basePokemonData = pokemonPool.find(p => p.pokedexId === effectivePokedexId) || {};
+
+    if (shouldMarkSeen) {
+        markAsSeen(effectivePokedexId, isShiny);
+    }
 
     return {
         id: Date.now().toString(36) + Math.random().toString(36).substr(2),
@@ -3845,8 +6566,8 @@ function createPokemon(name, types, hp, baseStats, moves, spriteFront, spriteBac
         baseStats: JSON.parse(JSON.stringify(baseStats)),
         stats: { attack: 0, defense: 0, speed: 0, accuracy: 0, evasion: 0 },
         moves: moves.map(m => ({ ...m, currentPp: m.maxPp })),
-        spriteFrontUrl: isShiny ? `${shinyBaseUrl}/shiny/${effectivePokedexId}.png` : spriteFront,
-        spriteBackUrl: isShiny ? `${shinyBaseUrl}/back/shiny/${effectivePokedexId}.png` : spriteBack,
+        spriteFrontUrl: isShiny ? `${shinyBaseUrl}/shiny/${effectivePokedexId}.png` : (spriteFront || `${shinyBaseUrl}/${effectivePokedexId}.png`),
+        spriteBackUrl: isShiny ? `${shinyBaseUrl}/back/shiny/${effectivePokedexId}.png` : (spriteBack || `${shinyBaseUrl}/back/${effectivePokedexId}.png`),
         status: null, isShiny: isShiny,
         sleepTurns: 0,
         flinch: false,
@@ -3854,21 +6575,62 @@ function createPokemon(name, types, hp, baseStats, moves, spriteFront, spriteBac
         evolvesToPokedexId: basePokemonData.evolvesToPokedexId || null
     };
 }
-function createPokemonFromData(data, isOpponent = false, forPlayerTeam = false) {
+function createPokemonFromData(data, isOpponent = false, forPlayerTeam = false, shouldMarkSeen = true) {
     let isShiny = false;
-    if (data.isShiny) {
-        isShiny = true;
-    } else if ((isOpponent || battleState.isWildBattle) && !forPlayerTeam && Math.random() < SHINY_CHANCE) {
+    if (typeof data.isShiny === 'boolean') {
+        isShiny = data.isShiny;
+    } else if ((isOpponent || (battleState.isWildBattle && !forPlayerTeam)) && Math.random() < SHINY_CHANCE) {
         isShiny = true;
     }
 
-    const newPokemon = createPokemon(data.name, data.types, data.hp, data.baseStats, data.moves, data.spriteFront, data.spriteBack, isShiny, data.pokedexId);
+    if (shouldMarkSeen) {
+        markAsSeen(data.pokedexId, isShiny);
+    }
+
+    const newPokemon = createPokemon(data.name, data.types, data.hp, data.baseStats, data.moves, data.spriteFront, data.spriteBack, isShiny, data.pokedexId, false);
     return newPokemon;
 }
+
 function calculateStatWithStage(baseStat, stage, statType) { const stageArray = (statType === 'accuracy' || statType === 'evasion') ? accuracyStageMultipliers : statStageMultipliers; const modifier = stageArray[stage + 6]; let finalStat = Math.floor(baseStat * modifier); if (statType === 'speed') { const pokemonToCheck = battleState.playerTurn ? (battleState.opponentTeam[battleState.opponentActiveIndex] || {}) : (battleState.playerTeam[battleState.playerActiveIndex] || {}); if (pokemonToCheck && pokemonToCheck.status === 'PAR' && baseStat === pokemonToCheck.baseStats?.speed) { finalStat = Math.floor(finalStat / 2); } } return finalStat; }
 function calculateTypeEffectiveness(moveType, defenderTypes) { let totalEffectiveness = 1; if (!typeChart[moveType]) return 1; defenderTypes.forEach(defenderType => { if (typeChart[moveType][defenderType] !== undefined) { totalEffectiveness *= typeChart[moveType][defenderType]; }}); return totalEffectiveness; }
 function getEffectivenessText(multiplier, defenderName) { if (multiplier >= 2) return "It's super effective!"; if (multiplier > 0 && multiplier < 1) return "It's not very effective..."; if (multiplier === 0) return `It doesn't affect foe ${defenderName.toUpperCase()}...`; return ""; }
-function switchScreen(screenKey) { Object.keys(screens).forEach(key => { if (screens[key]) screens[key].style.display = 'none'; }); if (screens[screenKey]) { screens[screenKey].style.display = 'flex'; currentScreen = screenKey; } else { console.error(`Screen '${screenKey}' not found.`); } }
+
+function switchScreen(screenKey) {
+    const nonBattleMusicScreens = [
+        'mainMenu', 'market', 'inventory', 'team', 'pcBox', 'myCards',
+        'tcgCards', 'password', 'adminMode', 'optionsMenu', 'playMenu',
+        'gymLeaderSelect', 'gymLeaderDetail', 'eliteFourSelect',
+        'eliteFourDetail', 'pokemonLeague', 'teamRocket', 'pokedex', 'useItem'
+    ];
+    const initialSetupScreens = ['intro', 'characterSelect', 'starterSelect'];
+    const battleRelatedScreens = ['battle', 'switchPokemon'];
+
+    if (battleRelatedScreens.includes(screenKey)) {
+        if (!battleInProgress && screenKey === 'battle') {
+            // Music started by specific battle functions
+        } else if (battleInProgress && currentScreen !== 'battle' && currentScreen !== 'switchPokemon') {
+            stopIntroMusic();
+        }
+    } else if (nonBattleMusicScreens.includes(screenKey)) {
+        if (battleInProgress) {
+            stopBattleMusic(true);
+        }
+        startIntroMusic();
+    } else if (initialSetupScreens.includes(screenKey)) {
+        stopIntroMusic();
+        stopBattleMusic(true);
+    }
+
+    Object.keys(screens).forEach(key => {
+        if (screens[key]) screens[key].style.display = 'none';
+    });
+    if (screens[screenKey]) {
+        screens[screenKey].style.display = 'flex';
+        currentScreen = screenKey;
+    } else {
+        console.error(`Screen '${screenKey}' not found.`);
+    }
+}
 function typeMessage(message, callback) { if (battleState.isProcessingMessage && message) { battleState.messageQueue.push({ message, callback }); return; } battleState.isProcessingMessage = true; battleMessageEl.textContent = ''; actionMenuEl.style.display = 'none'; moveMenuEl.style.display = 'none'; itemMenuEl.style.display = 'none'; battleTextboxEl.style.display = 'block'; battleTextboxEl.style.visibility = 'visible'; let i = 0; const intervalId = setInterval(() => { if (i < message.length) { battleMessageEl.textContent += message.charAt(i); i++; } else { clearInterval(intervalId); battleState.isProcessingMessage = false; battleState.onMessageComplete = callback; processMessageQueue(); } }, 35); }
 function processMessageQueue() { if (!battleState.isProcessingMessage && battleState.messageQueue.length > 0) { const next = battleState.messageQueue.shift(); typeMessage(next.message, next.callback); } }
 if (battleTextboxEl && battleTextboxEl.parentElement) { battleTextboxEl.parentElement.addEventListener('click', (e) => { if (e.target.closest('.battle-menu') || e.target.closest('#switchPokemonScreen') || e.target.closest('#teamSelectScreen') || e.target.closest('.dialog-overlay')) return; if (!battleState.isProcessingMessage && battleState.onMessageComplete) { const callback = battleState.onMessageComplete; battleState.onMessageComplete = null; callback(); processMessageQueue(); } });}
@@ -3932,7 +6694,16 @@ function updateBattleUI() {
     playerPokemonSpriteEl.src = pPok.spriteBackUrl;
     updateHpBar(playerHpFillEl, playerHpNumbersEl, pPok.currentHP, pPok.maxHP);
     updateStatusTag(pPok, playerStatusTagEl);
-    updateTeamStatus(playerTeamStatusEl, battleState.playerTeam, battleState.isEliteFourBattle ? 6 : 3);
+    markAsSeen(pPok.pokedexId, pPok.isShiny);
+
+    let playerTeamSizeForUI = 3;
+    if (battleState.isEliteFourBattle || battleState.isPokemonLeagueBattle || battleState.isRaidBattle) { // Raid toegevoegd
+        playerTeamSizeForUI = MAX_TEAM_SIZE;
+    } else if (battleState.isTeamRocketBattle || battleState.isGymBattle) {
+        playerTeamSizeForUI = Math.min(battleState.playerTeam.length, 3);
+    }
+    updateTeamStatus(playerTeamStatusEl, battleState.playerTeam, playerTeamSizeForUI);
+
 
     if (battleState.opponentTeam.length > 0 && battleState.opponentTeam[battleState.opponentActiveIndex]) {
         const oPok = battleState.opponentTeam[battleState.opponentActiveIndex];
@@ -3940,7 +6711,17 @@ function updateBattleUI() {
         opponentPokemonSpriteEl.src = oPok.spriteFrontUrl;
         updateHpBar(opponentHpFillEl, opponentHpNumbersEl, oPok.currentHP, oPok.maxHP);
         updateStatusTag(oPok, opponentStatusTagEl);
-        updateTeamStatus(opponentTeamStatusEl, battleState.opponentTeam, battleState.isEliteFourBattle ? 6 : 3);
+        markAsSeen(oPok.pokedexId, oPok.isShiny);
+
+        let opponentTeamSizeForUI = 3;
+        if (battleState.isEliteFourBattle || battleState.isPokemonLeagueBattle) {
+            opponentTeamSizeForUI = MAX_TEAM_SIZE;
+        } else if (battleState.isTeamRocketBattle || battleState.isGymBattle) {
+            opponentTeamSizeForUI = battleState.opponentTeam.length > 3 ? 3 : battleState.opponentTeam.length;
+        } else if (battleState.isRaidBattle) { // Raid heeft maar 1 tegenstander
+             opponentTeamSizeForUI = 1;
+        }
+        updateTeamStatus(opponentTeamStatusEl, battleState.opponentTeam, opponentTeamSizeForUI);
     } else {
         opponentPokemonNameEl.textContent = "";
         opponentPokemonSpriteEl.src = "";
@@ -3979,8 +6760,15 @@ function updateTeamStatus(containerElement, team, totalSlots = 3) {
         containerElement.appendChild(ball);
     }
 }
-function updateCoinDisplay() { const coins = selectedTrainerData ? (selectedTrainerData.coins || 0) : 0; if (playerCoinsDisplayMainMenuEl) playerCoinsDisplayMainMenuEl.textContent = `Coins: ${coins}`; if (marketCoinDisplayEl) marketCoinDisplayEl.textContent = `Coins: ${coins}`; }
-function showMarketScreen() { if (!selectedTrainerData) { alert("Please select a trainer first."); switchScreen('characterSelect'); return; } updateCoinDisplay(); switchScreen('market'); }
+function updateCurrencyDisplays() { // NIEUW: Aparte functie
+    const coins = selectedTrainerData ? (selectedTrainerData.coins || 0) : 0;
+    const gold = selectedTrainerData ? (selectedTrainerData.gold || 0) : 0;
+    if (playerCoinsDisplayMainMenuEl) playerCoinsDisplayMainMenuEl.textContent = `Coins: ${coins}`;
+    if (playerGoldDisplayMainMenuEl) playerGoldDisplayMainMenuEl.textContent = `Gold: ${gold}`;
+    if (marketCoinDisplayEl) marketCoinDisplayEl.textContent = `Coins: ${coins}`;
+    if (marketGoldDisplayEl) marketGoldDisplayEl.textContent = `Gold: ${gold}`;
+}
+function showMarketScreen() { if (!selectedTrainerData) { alert("Please select a trainer first."); switchScreen('characterSelect'); return; } updateCurrencyDisplays(); switchScreen('market'); }
 function showInventoryScreen() {
     if (!selectedTrainerData) { alert("Please select a trainer first."); switchScreen('characterSelect'); return; }
     inventoryGridEl.innerHTML = '';
@@ -3993,16 +6781,32 @@ function showInventoryScreen() {
             itemDiv.classList.add('inventory-item');
             const itemIcon = document.createElement('img');
             itemIcon.classList.add('item-icon');
-            if (itemName.toLowerCase().includes("great")) { itemIcon.style.backgroundImage = 'var(--item-icon-greatball)'; itemIcon.alt = "Great Ball"; }
-            else if (itemName.toLowerCase().includes("evolution")) { itemIcon.style.backgroundImage = 'var(--item-icon-evolutionstone)'; itemIcon.alt = "Evolution Stone"; }
+            if (itemName.toLowerCase().includes("ultra ball")) { itemIcon.style.backgroundImage = 'var(--item-icon-ultraball)'; itemIcon.alt = "Ultra Ball"; }
+            else if (itemName.toLowerCase().includes("master ball")) { itemIcon.style.backgroundImage = 'var(--item-icon-masterball)'; itemIcon.alt = "Master Ball"; itemIcon.classList.add('masterball-icon');}
+            else if (itemName.toLowerCase().includes("great ball")) { itemIcon.style.backgroundImage = 'var(--item-icon-greatball)'; itemIcon.alt = "Great Ball"; }
+            else if (itemName.toLowerCase().includes("shiny stone")) { itemIcon.style.backgroundImage = 'var(--item-icon-shinystone)'; itemIcon.alt = "Shiny Stone"; itemIcon.classList.add('shinystone-icon'); } // NIEUW
+            else if (itemName.toLowerCase().includes("evolution stone")) { itemIcon.style.backgroundImage = 'var(--item-icon-evolutionstone)'; itemIcon.alt = "Evolution Stone"; }
             else if (itemName.toLowerCase().includes("tcg pack")) { itemIcon.style.backgroundImage = 'var(--item-icon-tcgpack)'; itemIcon.alt = "TCG Pack"; itemIcon.classList.add('tcgpack-icon'); }
             else { itemIcon.style.backgroundImage = 'var(--item-icon-pokeball)'; itemIcon.alt = "Poké Ball"; }
-            itemIcon.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"; // Transparent pixel
+            itemIcon.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
             const itemDetails = document.createElement('div');
             itemDetails.classList.add('item-details');
             itemDetails.innerHTML = `<span class="item-name">${itemName}</span>: ${inventory[itemName]}`;
             itemDiv.appendChild(itemIcon);
             itemDiv.appendChild(itemDetails);
+
+            if (itemName === "Shiny Stone") { // NIEUW: Knop voor Shiny Stone
+                const useButton = document.createElement('button');
+                useButton.classList.add('use-item-button');
+                useButton.textContent = 'USE';
+                useButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    currentItemToUse = itemName;
+                    showUseItemScreen();
+                });
+                itemDiv.appendChild(useButton);
+            }
+
             inventoryGridEl.appendChild(itemDiv);
         }
     });
@@ -4051,9 +6855,10 @@ function showTeamScreen() {
             pSprite.classList.add('pokemon-list-sprite');
             pSprite.src = pokemon.spriteFrontUrl;
             pSprite.alt = pokemon.name.toUpperCase();
+            if (pokemon.isShiny) pSprite.classList.add('shiny-sprite-indicator');
             const pDetails = document.createElement('div');
             pDetails.classList.add('pokemon-details');
-            pDetails.innerHTML = `<span class="pokemon-name">${pokemon.name.toUpperCase()}</span> <br>HP: ${Math.floor(pokemon.currentHP)}/${pokemon.maxHP} ${pokemon.status ? '('+pokemon.status.toUpperCase()+')' : ''}`;
+            pDetails.innerHTML = `<span class="pokemon-name">${pokemon.name.toUpperCase()}${pokemon.isShiny ? ' (Shiny)' : ''}</span> <br>HP: ${Math.floor(pokemon.currentHP)}/${pokemon.maxHP} ${pokemon.status ? '('+pokemon.status.toUpperCase()+')' : ''}`;
             pCard.appendChild(pSprite);
             pCard.appendChild(pDetails);
             teamGridEl.appendChild(pCard);
@@ -4074,6 +6879,7 @@ function movePokemonInTeam(currentIndex, newIndex) {
     showTeamScreen();
 }
 
+// --- Functies voor PC Box ---
 function showPcBoxScreen() {
     if (!selectedTrainerData) {
         alert("Please select a trainer first.");
@@ -4081,30 +6887,24 @@ function showPcBoxScreen() {
         return;
     }
     pcTeamGridEl.innerHTML = '';
-    pcBoxGridEl.innerHTML = '';
 
     const team = selectedTrainerData.team.filter(p => p);
-    const pcBox = selectedTrainerData.pcBox.filter(p => p);
 
     pcTeamCountEl.textContent = team.length;
-    pcBoxCountEl.textContent = pcBox.length;
+    pcBoxCountEl.textContent = selectedTrainerData.pcBox.length;
     pcBoxCapacityEl.textContent = MAX_PC_BOX_SIZE;
 
     if (team.length === 0 && noPokemonPcTeamMsg) noPokemonPcTeamMsg.style.display = 'block';
     else if (noPokemonPcTeamMsg) noPokemonPcTeamMsg.style.display = 'none';
-
-    if (pcBox.length === 0 && noPokemonPcBoxMsg) noPokemonPcBoxMsg.style.display = 'block';
-    else if (noPokemonPcBoxMsg) noPokemonPcBoxMsg.style.display = 'none';
 
     team.forEach((pokemon, index) => {
         const pCard = createPcPokemonCard(pokemon, 'team', index);
         pcTeamGridEl.appendChild(pCard);
     });
 
-    pcBox.forEach((pokemon, index) => {
-        const pCard = createPcPokemonCard(pokemon, 'pc', index);
-        pcBoxGridEl.appendChild(pCard);
-    });
+    currentPcPage = 1;
+    renderCurrentPcPage();
+    updatePcPaginationButtons();
 
     switchScreen('pcBox');
 }
@@ -4120,11 +6920,12 @@ function createPcPokemonCard(pokemon, location, index) {
     pSprite.classList.add('pokemon-list-sprite');
     pSprite.src = pokemon.spriteFrontUrl;
     pSprite.alt = pokemon.name.toUpperCase();
+    if (pokemon.isShiny) pSprite.classList.add('shiny-sprite-indicator');
     pCard.appendChild(pSprite);
 
     const pDetails = document.createElement('div');
     pDetails.classList.add('pokemon-details');
-    pDetails.innerHTML = `<span class="pokemon-name">${pokemon.name.toUpperCase()}</span> <br>HP: ${Math.floor(pokemon.currentHP)}/${pokemon.maxHP} ${pokemon.status ? '('+pokemon.status.toUpperCase()+')' : ''}`;
+    pDetails.innerHTML = `<span class="pokemon-name">${pokemon.name.toUpperCase()}${pokemon.isShiny ? ' (Shiny)' : ''}</span> <br>HP: ${Math.floor(pokemon.currentHP)}/${pokemon.maxHP} ${pokemon.status ? '('+pokemon.status.toUpperCase()+')' : ''}`;
     pCard.appendChild(pDetails);
 
     const moveButton = document.createElement('button');
@@ -4143,6 +6944,41 @@ function createPcPokemonCard(pokemon, location, index) {
     return pCard;
 }
 
+function renderCurrentPcPage() {
+    pcBoxGridEl.innerHTML = '';
+    const pcBox = selectedTrainerData.pcBox;
+    const startIndex = (currentPcPage - 1) * POKEMON_PER_PC_PAGE;
+    const endIndex = startIndex + POKEMON_PER_PC_PAGE;
+    const pagePokemon = pcBox.slice(startIndex, endIndex);
+
+    if (pcBox.length === 0 && noPokemonPcBoxMsg) {
+        noPokemonPcBoxMsg.textContent = "PC Box is empty.";
+        noPokemonPcBoxMsg.style.display = 'block';
+    } else if (pagePokemon.length === 0 && noPokemonPcBoxMsg) {
+        noPokemonPcBoxMsg.textContent = "This page is empty.";
+        noPokemonPcBoxMsg.style.display = 'block';
+    } else if (noPokemonPcBoxMsg) {
+        noPokemonPcBoxMsg.style.display = 'none';
+    }
+
+    pagePokemon.forEach((pokemon, pageIndex) => {
+        const globalIndex = startIndex + pageIndex;
+        const pCard = createPcPokemonCard(pokemon, 'pc', globalIndex);
+        pcBoxGridEl.appendChild(pCard);
+    });
+
+    const totalPages = Math.max(1, Math.ceil(pcBox.length / POKEMON_PER_PC_PAGE));
+    pcPageIndicatorEl.textContent = `Page ${currentPcPage} / ${totalPages}`;
+}
+
+function updatePcPaginationButtons() {
+    const pcBox = selectedTrainerData.pcBox;
+    const totalPages = Math.max(1, Math.ceil(pcBox.length / POKEMON_PER_PC_PAGE));
+
+    pcPrevButton.disabled = currentPcPage <= 1;
+    pcNextButton.disabled = currentPcPage >= totalPages;
+}
+
 function movePokemonToPc(teamIndex) {
     if (!selectedTrainerData || !selectedTrainerData.team[teamIndex] || selectedTrainerData.pcBox.length >= MAX_PC_BOX_SIZE) {
         alert("Cannot move Pokémon to PC. PC might be full or Pokémon not found.");
@@ -4156,62 +6992,198 @@ function movePokemonToPc(teamIndex) {
     const pokemonToMove = selectedTrainerData.team.splice(teamIndex, 1)[0];
     selectedTrainerData.pcBox.push(pokemonToMove);
     saveGame();
-    showPcBoxScreen();
+
+    renderCurrentPcPage();
+    updatePcPaginationButtons();
+
+    pcTeamGridEl.innerHTML = '';
+    selectedTrainerData.team.filter(p => p).forEach((pokemon, index) => {
+        const pCard = createPcPokemonCard(pokemon, 'team', index);
+        pcTeamGridEl.appendChild(pCard);
+    });
+    pcTeamCountEl.textContent = selectedTrainerData.team.length;
+    pcBoxCountEl.textContent = selectedTrainerData.pcBox.length;
+    if (selectedTrainerData.team.length === 0 && noPokemonPcTeamMsg) noPokemonPcTeamMsg.style.display = 'block';
+    else if (noPokemonPcTeamMsg) noPokemonPcTeamMsg.style.display = 'none';
 }
 
-function movePokemonToTeam(pcIndex) {
-    if (!selectedTrainerData || !selectedTrainerData.pcBox[pcIndex] || selectedTrainerData.team.length >= MAX_TEAM_SIZE) {
+function movePokemonToTeam(globalPcIndex) {
+    if (!selectedTrainerData || !selectedTrainerData.pcBox[globalPcIndex] || selectedTrainerData.team.length >= MAX_TEAM_SIZE) {
         alert("Cannot move Pokémon to team. Team might be full or Pokémon not found.");
         return;
     }
-    const pokemonToMove = selectedTrainerData.pcBox.splice(pcIndex, 1)[0];
+    const pokemonToMove = selectedTrainerData.pcBox.splice(globalPcIndex, 1)[0];
     selectedTrainerData.team.push(pokemonToMove);
     saveGame();
-    showPcBoxScreen();
+
+    const totalPages = Math.max(1, Math.ceil(selectedTrainerData.pcBox.length / POKEMON_PER_PC_PAGE));
+    if (currentPcPage > totalPages && totalPages > 0) {
+        currentPcPage = totalPages;
+    }
+    renderCurrentPcPage();
+    updatePcPaginationButtons();
+
+    pcTeamGridEl.innerHTML = '';
+    selectedTrainerData.team.filter(p => p).forEach((pokemon, index) => {
+        const pCard = createPcPokemonCard(pokemon, 'team', index);
+        pcTeamGridEl.appendChild(pCard);
+    });
+    pcTeamCountEl.textContent = selectedTrainerData.team.length;
+    pcBoxCountEl.textContent = selectedTrainerData.pcBox.length;
+    if (selectedTrainerData.team.length === 0 && noPokemonPcTeamMsg) noPokemonPcTeamMsg.style.display = 'block';
+    else if (noPokemonPcTeamMsg) noPokemonPcTeamMsg.style.display = 'none';
 }
 
-function openTcgPackAnimation(cards) { // cards is an array of pulled TCG card objects
+// --- Pokedex Functies ---
+function showPokedexScreen() {
+    if (!selectedTrainerData) {
+        alert("No trainer data loaded.");
+        switchScreen('mainMenu');
+        return;
+    }
+    pokedexSearchInputEl.value = "";
+    renderPokedexEntries(pokemonPool);
+    switchScreen('pokedex');
+}
+
+function renderPokedexEntries(pokemonListToDisplay) {
+    pokedexGridEl.innerHTML = '';
+    const shinyBaseUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/";
+
+    pokemonListToDisplay.forEach(pokemonData => {
+        const entryDiv = document.createElement('div');
+        entryDiv.classList.add('pokedex-entry');
+
+        const nameP = document.createElement('p');
+        nameP.classList.add('pokemon-name');
+        nameP.textContent = `#${String(pokemonData.pokedexId).padStart(3, '0')} ${pokemonData.name.toUpperCase()}`;
+        entryDiv.appendChild(nameP);
+
+        const spritesDiv = document.createElement('div');
+        spritesDiv.classList.add('pokedex-sprites');
+
+        const normalSprite = document.createElement('img');
+        normalSprite.src = pokemonData.spriteFront;
+        normalSprite.alt = pokemonData.name + " (Normal)";
+        if (!selectedTrainerData.pokedexSeen || !selectedTrainerData.pokedexSeen[pokemonData.pokedexId]) {
+            normalSprite.classList.add('not-seen');
+        }
+        spritesDiv.appendChild(normalSprite);
+
+        const shinySprite = document.createElement('img');
+        shinySprite.src = `${shinyBaseUrl}${pokemonData.pokedexId}.png`;
+        shinySprite.alt = pokemonData.name + " (Shiny)";
+         if (!selectedTrainerData.pokedexShinySeen || !selectedTrainerData.pokedexShinySeen[pokemonData.pokedexId]) {
+            shinySprite.classList.add('not-seen');
+        }
+        spritesDiv.appendChild(shinySprite);
+        entryDiv.appendChild(spritesDiv);
+
+        const statusDiv = document.createElement('div');
+        statusDiv.classList.add('pokedex-seen-status');
+
+        const seenNormalLabel = document.createElement('label');
+        const seenNormalCheckbox = document.createElement('input');
+        seenNormalCheckbox.type = 'checkbox';
+        seenNormalCheckbox.checked = selectedTrainerData.pokedexSeen && selectedTrainerData.pokedexSeen[pokemonData.pokedexId];
+        seenNormalCheckbox.disabled = true;
+        seenNormalLabel.appendChild(seenNormalCheckbox);
+        seenNormalLabel.appendChild(document.createTextNode(" Seen"));
+        statusDiv.appendChild(seenNormalLabel);
+
+        const seenShinyLabel = document.createElement('label');
+        const seenShinyCheckbox = document.createElement('input');
+        seenShinyCheckbox.type = 'checkbox';
+        seenShinyCheckbox.checked = selectedTrainerData.pokedexShinySeen && selectedTrainerData.pokedexShinySeen[pokemonData.pokedexId];
+        seenShinyCheckbox.disabled = true;
+        seenShinyLabel.appendChild(seenShinyCheckbox);
+        seenShinyLabel.appendChild(document.createTextNode(" Shiny Seen"));
+        statusDiv.appendChild(seenShinyLabel);
+
+        entryDiv.appendChild(statusDiv);
+        pokedexGridEl.appendChild(entryDiv);
+    });
+}
+
+function filterPokedex() {
+    const searchTerm = pokedexSearchInputEl.value.toLowerCase().trim();
+    if (!searchTerm) {
+        renderPokedexEntries(pokemonPool);
+        return;
+    }
+    const filteredPokemon = pokemonPool.filter(p => {
+        return p.name.toLowerCase().includes(searchTerm) || String(p.pokedexId).includes(searchTerm);
+    });
+    renderPokedexEntries(filteredPokemon);
+}
+
+
+// --- TCG Functies ---
+function openTcgPackAnimation(cards) {
+    revealedTcgCards = cards || [];
+    currentRevealedTcgCardIndex = 0;
+
     screens.tcgPackOpeningOverlay.style.display = 'flex';
     tcgPackAnimationContainer.style.display = 'block';
     revealedTcgCardContainer.style.display = 'none';
-    tcgPackAnimationContainer.innerHTML = '<p>Opening Pack...</p>'; // Initial message
+    tcgPackAnimationContainer.innerHTML = '<p>Opening Pack...</p>';
 
-    // Simulate pack opening animation (e.g., shaking, tearing)
-    // You can use Anime.js here for more complex animations on tcgPackAnimationContainer
     setTimeout(() => {
-        tcgPackAnimationContainer.style.display = 'none'; // Hide animation container
-        revealedTcgCardContainer.style.display = 'flex';  // Show card reveal container
-
-        if (cards && cards.length > 0) {
-            const cardToShow = cards[0]; // Show the first card (since TCG_CARDS_PER_PACK is 1)
-            revealedTcgCardImageEl.src = cardToShow.spriteUrl; // This is now the URL from PokemonTCG API
-            revealedTcgCardImageEl.alt = cardToShow.tcgCardName + " TCG Card";
-            revealedTcgCardNameEl.textContent = cardToShow.tcgCardName.toUpperCase();
-        } else {
-            // Fallback if somehow no cards were passed, though buyItem should prevent this
-            revealedTcgCardImageEl.src = "";
-            revealedTcgCardImageEl.alt = "No Card";
-            revealedTcgCardNameEl.textContent = "NO CARD PULLED";
-        }
-    }, 2000); // Delay to simulate opening
+        tcgPackAnimationContainer.style.display = 'none';
+        revealedTcgCardContainer.style.display = 'flex';
+        displayRevealedTcgCard();
+    }, 2000);
 }
 
-
-function buyItem(itemName, price) {
-    if (!selectedTrainerData) return;
-    price = parseInt(price);
-
-    if (selectedTrainerData.coins < price) {
-        alert("Not enough coins!");
+function displayRevealedTcgCard() {
+    if (revealedTcgCards.length === 0) {
+        revealedTcgCardImageEl.src = "";
+        revealedTcgCardImageEl.alt = "No Card";
+        revealedTcgCardNameEl.textContent = "NO CARD PULLED";
+        if(revealedTcgCardIndexIndicatorEl) revealedTcgCardIndexIndicatorEl.textContent = "";
+        if(prevRevealedTcgCardButton) prevRevealedTcgCardButton.style.display = 'none';
+        if(nextRevealedTcgCardButton) nextRevealedTcgCardButton.style.display = 'none';
         return;
     }
 
-    if (itemName === "TCG Pack") {
-        selectedTrainerData.coins -= price;
-        selectedTrainerData.inventory[itemName] = (selectedTrainerData.inventory[itemName] || 0) + 1;
-        updateCoinDisplay(); // Update coins immediately
+    const cardToShow = revealedTcgCards[currentRevealedTcgCardIndex];
+    revealedTcgCardImageEl.src = cardToShow.spriteUrl;
+    revealedTcgCardImageEl.alt = cardToShow.tcgCardName + " TCG Card";
+    revealedTcgCardNameEl.textContent = cardToShow.tcgCardName.toUpperCase();
 
-        // Show loading state in TCG pack opening overlay
+    if(revealedTcgCardIndexIndicatorEl) {
+        revealedTcgCardIndexIndicatorEl.textContent = `Card ${currentRevealedTcgCardIndex + 1} of ${revealedTcgCards.length}`;
+        revealedTcgCardIndexIndicatorEl.style.display = revealedTcgCards.length > 1 ? 'block' : 'none';
+    }
+
+    if(prevRevealedTcgCardButton) {
+        prevRevealedTcgCardButton.style.display = revealedTcgCards.length > 1 ? 'inline-block' : 'none';
+        prevRevealedTcgCardButton.disabled = currentRevealedTcgCardIndex === 0;
+    }
+    if(nextRevealedTcgCardButton) {
+        nextRevealedTcgCardButton.style.display = revealedTcgCards.length > 1 ? 'inline-block' : 'none';
+        nextRevealedTcgCardButton.disabled = currentRevealedTcgCardIndex === revealedTcgCards.length - 1;
+    }
+}
+
+
+function buyItem(itemName, price, currency = "coins") { // currency parameter toegevoegd
+    if (!selectedTrainerData) return;
+    price = parseInt(price);
+
+    if (currency === "coins" && selectedTrainerData.coins < price) {
+        alert("Not enough Coins!");
+        return;
+    } else if (currency === "gold" && (selectedTrainerData.gold || 0) < price) {
+        alert("Not enough Gold!");
+        return;
+    }
+
+
+    if (itemName === "TCG Pack") {
+        selectedTrainerData.coins -= price; // TCG Pack is coins
+        updateCurrencyDisplays();
+
         screens.tcgPackOpeningOverlay.style.display = 'flex';
         tcgPackAnimationContainer.style.display = 'block';
         revealedTcgCardContainer.style.display = 'none';
@@ -4219,6 +7191,10 @@ function buyItem(itemName, price) {
 
         const fetchPromises = [];
         for (let i = 0; i < TCG_CARDS_PER_PACK; i++) {
+            if (pokemonPool.length === 0) {
+                 fetchPromises.push(Promise.resolve(null));
+                 continue;
+            }
             const randomPokemonForTcg = pokemonPool[Math.floor(Math.random() * pokemonPool.length)];
             if (randomPokemonForTcg) {
                 const query = `nationalPokedexNumbers:${randomPokemonForTcg.pokedexId}`;
@@ -4233,118 +7209,130 @@ function buyItem(itemName, price) {
                         if (apiData.data && apiData.data.length > 0) {
                             const randomCardFromApi = apiData.data[Math.floor(Math.random() * apiData.data.length)];
                             return {
-                                id: `tcg-${Date.now()}-${Math.random().toString(36).substr(2)}-${i}`,
+                                id: `tcg-${randomCardFromApi.id || Date.now()}-${i}`,
                                 pokemonGameName: randomPokemonForTcg.name,
                                 pokedexId: randomPokemonForTcg.pokedexId,
-                                spriteUrl: randomCardFromApi.images.large, // Actual TCG card image
-                                tcgCardName: randomCardFromApi.name,       // Name as it appears on the TCG card
+                                spriteUrl: randomCardFromApi.images.large,
+                                tcgCardName: randomCardFromApi.name,
+                                tcgSet: randomCardFromApi.set ? randomCardFromApi.set.name : "Unknown Set"
                             };
                         } else {
-                            console.warn(`No TCG card found for ${randomPokemonForTcg.name} (ID: ${randomPokemonForTcg.pokedexId}) via API. Using fallback sprite.`);
-                            return { // Fallback card object
+                            return {
                                 id: `tcg-fallback-${Date.now()}-${Math.random().toString(36).substr(2)}-${i}`,
                                 pokemonGameName: randomPokemonForTcg.name,
                                 pokedexId: randomPokemonForTcg.pokedexId,
-                                spriteUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${randomPokemonForTcg.pokedexId}.png`, // Game sprite
+                                spriteUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${randomPokemonForTcg.pokedexId}.png`,
                                 tcgCardName: randomPokemonForTcg.name.toUpperCase() + " (Card Art Not Found)",
+                                tcgSet: "Fallback Set"
                             };
                         }
                     })
                     .catch(error => {
                         console.error("Error fetching TCG card:", error);
-                        const fallbackPokemon = pokemonPool[Math.floor(Math.random() * pokemonPool.length)];
-                        return { // Error fallback card object
+                        const fallbackPokemon = pokemonPool.length > 0 ? pokemonPool[Math.floor(Math.random() * pokemonPool.length)] : {name: "ErrorMon", pokedexId: 0, spriteFront: ""};
+                        return {
                             id: `tcg-error-${Date.now()}-${Math.random().toString(36).substr(2)}-${i}`,
                             pokemonGameName: fallbackPokemon.name,
                             pokedexId: fallbackPokemon.pokedexId,
-                            spriteUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${fallbackPokemon.pokedexId}.png`, // Game sprite
+                            spriteUrl: fallbackPokemon.spriteFront || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${fallbackPokemon.pokedexId || 0}.png`,
                             tcgCardName: fallbackPokemon.name.toUpperCase() + " (API Error)",
+                            tcgSet: "Error Set"
                         };
                     });
                 fetchPromises.push(promise);
             } else {
-                fetchPromises.push(Promise.resolve(null)); // In case pokemonPool is empty
+                fetchPromises.push(Promise.resolve(null));
             }
         }
 
         Promise.all(fetchPromises)
             .then(pulledCardsData => {
-                const validPulledCards = pulledCardsData.filter(card => card); // Filter out nulls
+                const validPulledCards = pulledCardsData.filter(card => card);
 
                 if (validPulledCards.length > 0) {
                     selectedTrainerData.collectedTcgCards = selectedTrainerData.collectedTcgCards || [];
                     validPulledCards.forEach(card => selectedTrainerData.collectedTcgCards.push(card));
-                    openTcgPackAnimation(validPulledCards); // This will show "Opening Pack..." then reveal
+                    openTcgPackAnimation(validPulledCards);
                 } else {
-                    alert(`Successfully bought 1 TCG Pack! However, no specific TCG cards could be found for the Pokémon drawn (using fallback art).`);
-                    // If API always fails or returns no cards, you might still want to show something
-                    // For now, openTcgPackAnimation will be called with fallback cards if any were generated
-                    // If validPulledCards is empty, means even fallback failed.
-                    if (pulledCardsData.some(c => c && c.tcgCardName.includes("Fallback") || c.tcgCardName.includes("API Error"))) {
-                         openTcgPackAnimation(pulledCardsData.filter(c => c)); // Show fallback cards
-                    } else {
-                        screens.tcgPackOpeningOverlay.style.display = 'none'; // Hide overlay if truly nothing
-                    }
+                    alert(`Successfully bought 1 TCG Pack! However, no TCG cards could be found.`);
+                    screens.tcgPackOpeningOverlay.style.display = 'none';
                 }
-                saveGame(); // Save game state including new cards and updated inventory
+                saveGame();
             })
             .catch(overallError => {
                 console.error("Error in processing TCG pack promises:", overallError);
                 alert("An error occurred while opening the TCG pack. The pack has been consumed.");
                 screens.tcgPackOpeningOverlay.style.display = 'none';
-                saveGame(); // Save inventory change even if Promise.all fails
+                saveGame();
             });
 
-    } else { // For items other than TCG Pack
-        selectedTrainerData.coins -= price;
+    } else {
+        if (currency === "coins") {
+            selectedTrainerData.coins -= price;
+        } else if (currency === "gold") {
+            selectedTrainerData.gold = (selectedTrainerData.gold || 0) - price;
+        }
         selectedTrainerData.inventory[itemName] = (selectedTrainerData.inventory[itemName] || 0) + 1;
         alert(`Successfully bought 1 ${itemName}!`);
-        updateCoinDisplay();
+        updateCurrencyDisplays();
         saveGame();
     }
 }
 
+// --- Battle Setup Functies ---
+function getRandomBattleBackground() {
+    return BATTLE_BACKGROUNDS[Math.floor(Math.random() * BATTLE_BACKGROUNDS.length)];
+}
 
-function getUniqueRandomPokemon(existingPokedexIds, fromPool) {
-    const available = fromPool.filter(p => !existingPokedexIds.includes(p.pokedexId));
-    if (available.length === 0) return null;
-    return available[Math.floor(Math.random() * available.length)];
+function getUniqueRandomPokemon(existingPokedexIds, fromPool, count) {
+    const available = fromPool.filter(p => !existingPokedexIds.includes(p.pokedexId) && !p.isSpecialCodePokemon);
+    const chosen = [];
+    let tempAvailable = [...available];
+
+    for (let i = 0; i < count; i++) {
+        if (tempAvailable.length === 0) {
+            const fallbackPool = fromPool.filter(p => !chosen.some(c => c.pokedexId === p.pokedexId) && !p.isSpecialCodePokemon);
+            if (fallbackPool.length === 0 && fromPool.filter(p => !p.isSpecialCodePokemon).length > 0) {
+                 chosen.push(fromPool.filter(p => !p.isSpecialCodePokemon)[Math.floor(Math.random() * fromPool.filter(p => !p.isSpecialCodePokemon).length)]);
+                 continue;
+            }
+            if(fallbackPool.length === 0) break;
+            tempAvailable = [...fallbackPool];
+        }
+        const randomIndex = Math.floor(Math.random() * tempAvailable.length);
+        if (tempAvailable[randomIndex]) {
+            chosen.push(tempAvailable.splice(randomIndex, 1)[0]);
+        } else if (fromPool.filter(p => !p.isSpecialCodePokemon).length > 0) {
+            chosen.push(fromPool.filter(p => !p.isSpecialCodePokemon)[Math.floor(Math.random() * fromPool.filter(p => !p.isSpecialCodePokemon).length)]);
+        }
+    }
+    return chosen.filter(p => p);
 }
 
 function startQuickBattle() {
     battleState.isWildBattle = false;
     battleState.isGymBattle = false;
     battleState.isEliteFourBattle = false;
-    battleState.playerTeam = [];
-    battleState.opponentTeam = [];
+    battleState.isPokemonLeagueBattle = false;
+    battleState.isTeamRocketBattle = false;
+    battleState.isRaidBattle = false; // NIEUW
+    screens.battle.style.backgroundImage = getRandomBattleBackground();
 
-    let availableForPlayer = [...pokemonPool];
-    let playerPokedexIds = [];
-    for (let i = 0; i < 3; i++) {
-        if (availableForPlayer.length === 0) break;
-        let poolIdx = Math.floor(Math.random() * availableForPlayer.length);
-        let chosenData = availableForPlayer.splice(poolIdx, 1)[0];
-        battleState.playerTeam.push(createPokemonFromData(chosenData, false, true));
-        playerPokedexIds.push(chosenData.pokedexId);
+    const nonSpecialPool = pokemonPool.filter(p => !p.isSpecialCodePokemon);
+    if (nonSpecialPool.length < 3) {
+        alert("Error: Not enough Pokémon in the regular pool for a Quick Battle.");
+        switchScreen('mainMenu');
+        return;
     }
 
-    let availableForOpponent = pokemonPool.filter(p => !playerPokedexIds.includes(p.pokedexId));
-    if (availableForOpponent.length < 3) {
-        availableForOpponent = [...pokemonPool];
-    }
+    battleState.playerTeam = getUniqueRandomPokemon([], nonSpecialPool, 3)
+        .map(data => createPokemonFromData(data, false, true));
 
-    for (let i = 0; i < 3; i++) {
-        if (availableForOpponent.length === 0) {
-             if (pokemonPool.length > 0) battleState.opponentTeam.push(createPokemonFromData(pokemonPool[Math.floor(Math.random()*pokemonPool.length)], true, false));
-             else break;
-        } else {
-            let poolIdx = Math.floor(Math.random() * availableForOpponent.length);
-            let chosenData = availableForOpponent.splice(poolIdx, 1)[0];
-            battleState.opponentTeam.push(createPokemonFromData(chosenData, true, false));
-        }
-    }
+    const playerPokedexIds = battleState.playerTeam.map(p => p.pokedexId);
+    battleState.opponentTeam = getUniqueRandomPokemon(playerPokedexIds, nonSpecialPool, 3)
+        .map(data => createPokemonFromData(data, true, false));
 
-    if (battleState.playerTeam.length === 0 || battleState.opponentTeam.length === 0) {
+    if (battleState.playerTeam.length < 3 || battleState.opponentTeam.length < 3) {
         alert("Error: Could not set up teams for Quick Battle. Pokemon pool might be too small.");
         switchScreen('mainMenu');
         return;
@@ -4355,16 +7343,18 @@ function startQuickBattle() {
 
     updateBattleUI();
     switchScreen('battle');
+    startBattleMusic();
     const opponent = battleState.opponentTeam[0];
     const introMsg = opponent.isShiny ? `Opponent sent out SHINY ${opponent.name.toUpperCase()}!` : `Opponent sent out ${opponent.name.toUpperCase()}!`;
     typeMessage(introMsg, () => {
         battleState.onMessageComplete = () => {
             typeMessage(`Go ${battleState.playerTeam[0].name.toUpperCase()}!`, startTurnPhase);
-        }
+        };
     });
 }
 
-function prepareBattle(battleFunction, isEliteFour = false) {
+
+function prepareBattle(battleFunction, isEliteFour = false, isLeague = false, isTeamRocket = false, isRaid = false) { // isRaid toegevoegd
     if (!selectedTrainerData || !selectedTrainerData.team || selectedTrainerData.team.length === 0) {
         alert("You have no Pokémon! Please choose a starter or catch one in Wild Mode.");
         switchScreen('mainMenu');
@@ -4377,58 +7367,98 @@ function prepareBattle(battleFunction, isEliteFour = false) {
             p.sleepTurns = 0;
             p.flinch = false;
             p.stats = { attack: 0, defense: 0, speed: 0, accuracy: 0, evasion: 0 };
-            p.moves.forEach(m => m.currentPp = m.maxPp);
-
+            p.moves.forEach(m => {
+                const baseMove = pokemonPool.find(baseP => baseP.pokedexId === p.pokedexId)?.moves.find(bm => bm.name === m.name);
+                m.currentPp = baseMove ? baseMove.maxPp : m.maxPp;
+            });
             if (p.originalEvolutionData) {
-                const oldMaxHPBeforeRevert = p.maxHP;
-                const currentHPRatio = (oldMaxHPBeforeRevert > 0) ? (p.currentHP / oldMaxHPBeforeRevert) : 1;
-
                 p.pokedexId = p.originalEvolutionData.pokedexId;
                 p.name = p.originalEvolutionData.name;
                 p.types = [...p.originalEvolutionData.types];
                 p.maxHP = p.originalEvolutionData.maxHP;
-                p.currentHP = Math.max(0, Math.floor(currentHPRatio * p.maxHP));
+                p.currentHP = p.maxHP;
                 p.baseStats = JSON.parse(JSON.stringify(p.originalEvolutionData.baseStats));
                 p.moves = p.originalEvolutionData.moves.map(m => ({ ...m, currentPp: m.maxPp }));
                 p.isShiny = p.originalEvolutionData.isShiny;
-
                 const shinyBaseUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon";
                 const basePokemonForSprite = pokemonPool.find(baseP => baseP.pokedexId === p.pokedexId) || {};
                 p.spriteFrontUrl = p.isShiny ? `${shinyBaseUrl}/shiny/${p.pokedexId}.png` : (basePokemonForSprite.spriteFront || `${shinyBaseUrl}/${p.pokedexId}.png`);
                 p.spriteBackUrl = p.isShiny ? `${shinyBaseUrl}/back/shiny/${p.pokedexId}.png` : (basePokemonForSprite.spriteBack || `${shinyBaseUrl}/back/${p.pokedexId}.png`);
-
                 p.originalEvolutionData = null;
             }
         }
     });
 
-    const requiredTeamSize = isEliteFour ? 6 : 3;
-    if (selectedTrainerData.team.length < requiredTeamSize && isEliteFour) {
-        alert(`You need at least ${requiredTeamSize} Pokémon for an Elite Four battle!`);
+    let requiredTeamSize = 1;
+    let maxSelectable = 3;
+
+    if (isEliteFour || isLeague || isRaid) { // Raid toegevoegd
+        requiredTeamSize = MAX_TEAM_SIZE;
+        maxSelectable = MAX_TEAM_SIZE;
+    } else if (isTeamRocket) {
+        requiredTeamSize = 1;
+        maxSelectable = TEAM_ROCKET_POKEMON_COUNT;
+    } else if (battleFunction === startGymBattleActual) {
+        requiredTeamSize = 1;
+        maxSelectable = 3;
+    } else if (battleFunction === startWildBattleActual) {
+         requiredTeamSize = 1;
+         maxSelectable = 3;
+    }
+
+    const healthyPokemonCount = selectedTrainerData.team.filter(pk => pk && pk.currentHP > 0).length;
+    if (healthyPokemonCount < requiredTeamSize ) {
+        alert(`You need at least ${requiredTeamSize} healthy Pokémon for this battle! You have ${healthyPokemonCount}.`);
         switchScreen('playMenu');
         return;
     }
 
+    let shouldShowTeamSelect = false;
+    if (isEliteFour || isLeague || isRaid) { // Raid toegevoegd
+        shouldShowTeamSelect = true;
+    } else if (isTeamRocket) {
+        shouldShowTeamSelect = healthyPokemonCount > maxSelectable;
+    } else if (battleFunction === startGymBattleActual) {
+        shouldShowTeamSelect = healthyPokemonCount > maxSelectable;
+    } else if (battleFunction === startWildBattleActual && healthyPokemonCount > maxSelectable) {
+        shouldShowTeamSelect = true;
+    }
 
-    if (selectedTrainerData.team.length > requiredTeamSize || (isEliteFour && selectedTrainerData.team.length > 0)) {
+
+    if (shouldShowTeamSelect) {
         battleState.pendingBattleStartFunction = battleFunction;
-        showTeamSelectScreen(isEliteFour);
+        battleState.isEliteFourBattle = isEliteFour;
+        battleState.isPokemonLeagueBattle = isLeague;
+        battleState.isTeamRocketBattle = isTeamRocket;
+        battleState.isRaidBattle = isRaid; // NIEUW
+        showTeamSelectScreen(maxSelectable);
     } else {
-        battleState.playerTeam = JSON.parse(JSON.stringify(selectedTrainerData.team.filter(p => p)));
+        battleState.playerTeam = JSON.parse(JSON.stringify(selectedTrainerData.team.filter(p => p && p.currentHP > 0).slice(0, maxSelectable)));
+         if (battleState.playerTeam.length < requiredTeamSize) {
+            alert(`Not enough healthy Pokémon for this battle (need ${requiredTeamSize}, have ${battleState.playerTeam.length}).`);
+            switchScreen('playMenu');
+            return;
+        }
+        battleState.isEliteFourBattle = isEliteFour;
+        battleState.isPokemonLeagueBattle = isLeague;
+        battleState.isTeamRocketBattle = isTeamRocket;
+        battleState.isRaidBattle = isRaid; // NIEUW
         battleFunction();
     }
 }
 
-function showTeamSelectScreen(isEliteFour = false) {
+function showTeamSelectScreen(numToSelect) {
     teamSelectGridEl.innerHTML = '';
     battleState.selectedBattleTeamIndexes = [];
     teamSelectConfirmButton.disabled = true;
 
-    const numToSelect = isEliteFour ? 6 : 3;
     if (teamSelectTitleEl) {
-        teamSelectTitleEl.textContent = `SELECT YOUR BATTLE TEAM (CHOOSE ${numToSelect})`;
+        if (battleState.isEliteFourBattle || battleState.isPokemonLeagueBattle || battleState.isRaidBattle) { // Raid toegevoegd
+            teamSelectTitleEl.textContent = `SELECT YOUR BATTLE TEAM (CHOOSE ${numToSelect})`;
+        } else {
+            teamSelectTitleEl.textContent = `SELECT YOUR TEAM (UP TO ${numToSelect})`;
+        }
     }
-
 
     selectedTrainerData.team.forEach((pokemon, index) => {
         if (!pokemon) return;
@@ -4443,7 +7473,7 @@ function showTeamSelectScreen(isEliteFour = false) {
 
         const nfo = document.createElement('div');
         nfo.classList.add('team-select-info');
-        nfo.innerHTML = `<span class="name">${pokemon.name.toUpperCase()}</span><div class="hp-bar-container"><div class="hp-bar-fill" style="width:${Math.max(0,(pokemon.currentHP/pokemon.maxHP)*100)}%; background-color:${pokemon.currentHP/pokemon.maxHP > 0.5 ? 'var(--hp-high-color)' : (pokemon.currentHP/pokemon.maxHP > 0.2 ? 'var(--hp-medium-color)' : 'var(--hp-low-color)')};"></div></div><div class="hp-numbers">${Math.max(0,Math.floor(pokemon.currentHP))}/${pokemon.maxHP}</div>`;
+        nfo.innerHTML = `<span class="name">${pokemon.name.toUpperCase()}${pokemon.isShiny ? ' (S)' : ''}</span><div class="hp-bar-container"><div class="hp-bar-fill" style="width:${Math.max(0,(pokemon.currentHP/pokemon.maxHP)*100)}%; background-color:${pokemon.currentHP/pokemon.maxHP > 0.5 ? 'var(--hp-high-color)' : (pokemon.currentHP/pokemon.maxHP > 0.2 ? 'var(--hp-medium-color)' : 'var(--hp-low-color)')};"></div></div><div class="hp-numbers">${Math.max(0,Math.floor(pokemon.currentHP))}/${pokemon.maxHP}</div>`;
         opt.appendChild(nfo);
 
         if (pokemon.currentHP <= 0) {
@@ -4457,10 +7487,7 @@ function showTeamSelectScreen(isEliteFour = false) {
 }
 
 function toggleTeamSelectOption(optionElement, pokemonIndex, numToSelect) {
-    if (optionElement.classList.contains('fainted')) return;
-
     const indexInSelection = battleState.selectedBattleTeamIndexes.indexOf(pokemonIndex);
-
     if (indexInSelection > -1) {
         battleState.selectedBattleTeamIndexes.splice(indexInSelection, 1);
         optionElement.classList.remove('selected');
@@ -4469,25 +7496,51 @@ function toggleTeamSelectOption(optionElement, pokemonIndex, numToSelect) {
             battleState.selectedBattleTeamIndexes.push(pokemonIndex);
             optionElement.classList.add('selected');
         } else {
-            alert(`You can only select up to ${numToSelect} Pokémon.`);
+            alert(`You can select a maximum of ${numToSelect} Pokémon for this battle mode.`);
         }
     }
-    teamSelectConfirmButton.disabled = battleState.selectedBattleTeamIndexes.length !== numToSelect;
+
+    let minRequired = 1;
+    if (battleState.isEliteFourBattle || battleState.isPokemonLeagueBattle || battleState.isRaidBattle) { // Raid toegevoegd
+        minRequired = MAX_TEAM_SIZE;
+    }
+    teamSelectConfirmButton.disabled = !(battleState.selectedBattleTeamIndexes.length >= minRequired && battleState.selectedBattleTeamIndexes.length <= numToSelect);
 }
 
 teamSelectConfirmButton.addEventListener('click', () => {
-    const numRequired = battleState.isEliteFourBattle ? 6 : 3;
-    if (battleState.selectedBattleTeamIndexes.length === numRequired) {
-        battleState.playerTeam = battleState.selectedBattleTeamIndexes.map(index => {
-            return JSON.parse(JSON.stringify(selectedTrainerData.team[index]));
-        });
+    let maxAllowed;
+    let minRequired = 1;
 
-        if (battleState.pendingBattleStartFunction) {
-            battleState.pendingBattleStartFunction();
-            battleState.pendingBattleStartFunction = null;
-        }
+    if (battleState.isEliteFourBattle || battleState.isPokemonLeagueBattle || battleState.isRaidBattle) { // Raid toegevoegd
+        maxAllowed = MAX_TEAM_SIZE;
+        minRequired = MAX_TEAM_SIZE;
+    } else if (battleState.isTeamRocketBattle) {
+        maxAllowed = TEAM_ROCKET_POKEMON_COUNT;
+        minRequired = 1;
+    } else if (battleState.isGymBattle) {
+        maxAllowed = 3;
+        minRequired = 1;
     } else {
-        alert(`Please select exactly ${numRequired} Pokémon.`);
+        maxAllowed = 3;
+        minRequired = 1;
+    }
+
+    if (battleState.selectedBattleTeamIndexes.length < minRequired) {
+        alert(`Please select at least ${minRequired} Pokémon.`);
+        return;
+    }
+    if (battleState.selectedBattleTeamIndexes.length > maxAllowed) {
+         alert(`You can select a maximum of ${maxAllowed} Pokémon.`);
+        return;
+    }
+
+    battleState.playerTeam = battleState.selectedBattleTeamIndexes.map(index => {
+        return JSON.parse(JSON.stringify(selectedTrainerData.team[index]));
+    });
+
+    if (battleState.pendingBattleStartFunction) {
+        battleState.pendingBattleStartFunction();
+        battleState.pendingBattleStartFunction = null;
     }
 });
 
@@ -4496,8 +7549,19 @@ function startWildBattleActual() {
     battleState.isWildBattle = true;
     battleState.isGymBattle = false;
     battleState.isEliteFourBattle = false;
+    battleState.isPokemonLeagueBattle = false;
+    battleState.isTeamRocketBattle = false;
+    battleState.isRaidBattle = false;
+    screens.battle.style.backgroundImage = WILD_BATTLE_BACKGROUND;
+
     battleState.opponentTeam = [];
-    const wildPokemonData = pokemonPool[Math.floor(Math.random() * pokemonPool.length)];
+    const regularPool = pokemonPool.filter(p => !p.isSpecialCodePokemon);
+    if (regularPool.length === 0) {
+        alert("Error: Regular Pokemon pool is empty, cannot start wild battle.");
+        switchScreen('mainMenu');
+        return;
+    }
+    const wildPokemonData = regularPool[Math.floor(Math.random() * regularPool.length)];
     battleState.opponentTeam.push(createPokemonFromData(wildPokemonData, true, false));
 
     battleState.playerActiveIndex = 0;
@@ -4505,6 +7569,7 @@ function startWildBattleActual() {
 
     updateBattleUI();
     switchScreen('battle');
+    startBattleMusic();
     const opponent = battleState.opponentTeam[0];
     const introMsg = opponent.isShiny ? `A wild SHINY ${opponent.name.toUpperCase()} appeared!` : `A wild ${opponent.name.toUpperCase()} appeared!`;
     typeMessage(introMsg, () => {
@@ -4518,41 +7583,35 @@ function startGymBattleActual() {
     battleState.isWildBattle = false;
     battleState.isGymBattle = true;
     battleState.isEliteFourBattle = false;
+    battleState.isPokemonLeagueBattle = false;
+    battleState.isTeamRocketBattle = false;
+    battleState.isRaidBattle = false;
+    screens.battle.style.backgroundImage = getRandomBattleBackground();
 
     const leaderData = gymLeadersData[battleState.currentGymLeaderKey];
-    if (!leaderData) {
-        alert("Error: Gym Leader data not found!");
-        switchScreen('playMenu');
-        return;
-    }
+    if (!leaderData) { alert("Error: Gym Leader data not found!"); switchScreen('playMenu'); return; }
 
-    battleState.opponentTeam = leaderData.pokemonTeam.map(pokemonName => {
-        const pokemonBase = pokemonPool.find(p => p.name.toUpperCase() === pokemonName.toUpperCase());
+    battleState.opponentTeam = leaderData.pokemonTeam.map(pokemonNameOrId => {
+        const pokemonBase = pokemonPool.find(p => (p.name.toUpperCase() === String(pokemonNameOrId).toUpperCase() || p.pokedexId === parseInt(pokemonNameOrId)) && !p.isSpecialCodePokemon);
         if (!pokemonBase) {
-            console.error(`Pokemon ${pokemonName} not found in pool for Gym Leader ${leaderData.name}`);
-            // Try to find by Pokedex ID if name fails (e.g. if team was defined with IDs)
-            const idMatch = pokemonPool.find(p => p.pokedexId === parseInt(pokemonName));
-            if (!idMatch) {
-                console.error(`Pokemon ${pokemonName} also not found by ID for Gym Leader ${leaderData.name}`);
-                return null;
-            }
-            return createPokemonFromData(idMatch, true, false);
+            console.error(`Pokemon ${pokemonNameOrId} not found in regular pool for Gym Leader ${leaderData.name}`);
+            return null;
         }
         return createPokemonFromData(pokemonBase, true, false);
     }).filter(p => p !== null);
 
 
     if (battleState.opponentTeam.length === 0) {
-        alert(`Error: Could not set up Gym Leader ${leaderData.name}'s team. Check if Pokémon names in gymLeadersData are correct and exist in pokemonPool.`);
+        alert(`Error: Could not set up Gym Leader ${leaderData.name}'s team. Check Pokémon names/IDs in regular pool.`);
         switchScreen('playMenu');
         return;
     }
 
     battleState.playerActiveIndex = 0;
     battleState.opponentActiveIndex = 0;
-
     updateBattleUI();
     switchScreen('battle');
+    startBattleMusic();
     const opponent = battleState.opponentTeam[0];
     const introMsg = `${leaderData.name} challenges you to a battle! ${leaderData.name} sent out ${opponent.name.toUpperCase()}!`;
     typeMessage(introMsg, () => {
@@ -4566,39 +7625,32 @@ function startEliteFourBattleActual() {
     battleState.isWildBattle = false;
     battleState.isGymBattle = false;
     battleState.isEliteFourBattle = true;
+    battleState.isPokemonLeagueBattle = false;
+    battleState.isTeamRocketBattle = false;
+    battleState.isRaidBattle = false;
+    screens.battle.style.backgroundImage = getRandomBattleBackground();
 
     const memberData = eliteFourData[battleState.currentEliteFourMemberKey];
-    if (!memberData) {
-        alert("Error: Elite Four Member data not found!");
-        switchScreen('playMenu');
-        return;
-    }
-
-    battleState.opponentTeam = memberData.pokemonTeam.map(pokemonName => {
-        const pokemonBase = pokemonPool.find(p => p.name.toUpperCase() === pokemonName.toUpperCase());
+    if (!memberData) { alert("Error: Elite Four Member data not found!"); switchScreen('playMenu'); return; }
+    battleState.opponentTeam = memberData.pokemonTeam.map(pokemonNameOrId => {
+        const pokemonBase = pokemonPool.find(p => (p.name.toUpperCase() === String(pokemonNameOrId).toUpperCase() || p.pokedexId === parseInt(pokemonNameOrId)) && !p.isSpecialCodePokemon);
         if (!pokemonBase) {
-            console.error(`Pokemon ${pokemonName} not found in pool for Elite Four ${memberData.name}`);
-            const idMatch = pokemonPool.find(p => p.pokedexId === parseInt(pokemonName));
-            if (!idMatch) {
-                 console.error(`Pokemon ${pokemonName} also not found by ID for Elite Four ${memberData.name}`);
-                return null;
-            }
-            return createPokemonFromData(idMatch, true, false);
+            console.error(`Pokemon ${pokemonNameOrId} not found in regular pool for Elite Four ${memberData.name}`);
+            return null;
         }
         return createPokemonFromData(pokemonBase, true, false);
     }).filter(p => p !== null);
 
-    if (battleState.opponentTeam.length === 0) {
-        alert(`Error: Could not set up Elite Four ${memberData.name}'s team. Check Pokémon names/IDs.`);
+    if (battleState.opponentTeam.length < MAX_TEAM_SIZE) {
+        alert(`Error: Could not set up Elite Four ${memberData.name}'s team correctly (needs ${MAX_TEAM_SIZE} Pokémon from regular pool).`);
         switchScreen('playMenu');
         return;
     }
-
     battleState.playerActiveIndex = 0;
     battleState.opponentActiveIndex = 0;
-
     updateBattleUI();
     switchScreen('battle');
+    startBattleMusic();
     const opponent = battleState.opponentTeam[0];
     const introMsg = `Elite Four ${memberData.name} challenges you! ${memberData.name} sent out ${opponent.name.toUpperCase()}!`;
     typeMessage(introMsg, () => {
@@ -4608,7 +7660,202 @@ function startEliteFourBattleActual() {
     });
 }
 
+// --- Pokémon League Functies ---
+function showPokemonLeagueScreen() {
+    if (!selectedTrainerData || selectedTrainerData.team.filter(p=>p && p.currentHP > 0).length < MAX_TEAM_SIZE) {
+        alert(`You need a full team of ${MAX_TEAM_SIZE} healthy Pokémon to challenge the Pokémon League!`);
+        switchScreen('playMenu');
+        return;
+    }
+    battleState.currentLeagueOpponentIndex = selectedTrainerData.currentLeagueOpponentIndex || 0;
+    battleState.leagueBattlesWon = selectedTrainerData.leagueBattlesWon || 0;
 
+    if (selectedTrainerData.defeatedPokemonLeague) {
+        updatePokemonLeagueScreenUI();
+        switchScreen('pokemonLeague');
+        return;
+    }
+    if ((battleState.currentLeagueOpponentIndex === 0 && battleState.leagueBattlesWon === 0) || !currentLeagueOrder || currentLeagueOrder.length !== pokemonLeagueTrainers.length) {
+        currentLeagueOrder = [...pokemonLeagueTrainers].sort(() => 0.5 - Math.random());
+    }
+    updatePokemonLeagueScreenUI();
+    switchScreen('pokemonLeague');
+}
+
+function updatePokemonLeagueScreenUI() {
+    if (selectedTrainerData.defeatedPokemonLeague || battleState.leagueBattlesWon >= currentLeagueOrder.length) {
+        pokemonLeagueProgressEl.textContent = "YOU ARE THE CHAMPION!";
+        leagueOpponentNameEl.textContent = "N/A";
+        if(leagueOpponentCardEl) leagueOpponentCardEl.src = "https://www.serebii.net/pokemonmasters/syncpairs/sprites/Serena_Champion.png";
+        if(leagueOpponentCardEl) leagueOpponentCardEl.alt = "Champion";
+        btnStartLeagueBattle.style.display = 'none';
+    } else {
+        const nextOpponent = currentLeagueOrder[battleState.currentLeagueOpponentIndex];
+        pokemonLeagueProgressEl.textContent = `Battle ${battleState.leagueBattlesWon + 1} of ${currentLeagueOrder.length}`;
+        leagueOpponentNameEl.textContent = nextOpponent.name.toUpperCase();
+        if(leagueOpponentCardEl && nextOpponent.cardUrl) leagueOpponentCardEl.src = nextOpponent.cardUrl;
+        else if(leagueOpponentCardEl) leagueOpponentCardEl.src = "";
+        if(leagueOpponentCardEl) leagueOpponentCardEl.alt = nextOpponent.name + " Card";
+        btnStartLeagueBattle.style.display = 'block';
+        btnStartLeagueBattle.textContent = `START BATTLE VS ${nextOpponent.name.toUpperCase()}`;
+    }
+}
+
+function startNextLeagueBattle() {
+    battleState.isPokemonLeagueBattle = true;
+    battleState.isGymBattle = false;
+    battleState.isEliteFourBattle = false;
+    battleState.isWildBattle = false;
+    battleState.isTeamRocketBattle = false;
+    battleState.isRaidBattle = false;
+    screens.battle.style.backgroundImage = getRandomBattleBackground();
+
+    const opponentData = currentLeagueOrder[battleState.currentLeagueOpponentIndex];
+    if (!opponentData) {
+        console.error("Error: League opponent data not found for index:", battleState.currentLeagueOpponentIndex);
+        switchScreen('playMenu');
+        return;
+    }
+
+    battleState.opponentTeam = opponentData.pokemonTeam.map(pokemonNameOrId => {
+        const pokemonBase = pokemonPool.find(p => (p.name.toUpperCase() === String(pokemonNameOrId).toUpperCase() || p.pokedexId === parseInt(pokemonNameOrId)) && !p.isSpecialCodePokemon);
+        if (!pokemonBase) {
+            console.error(`Pokémon ${pokemonNameOrId} for League opponent ${opponentData.name} not in regular pool.`);
+            return null;
+        }
+        return createPokemonFromData(pokemonBase, true, false);
+    }).filter(p => p);
+
+    if (battleState.opponentTeam.length < MAX_TEAM_SIZE) {
+        alert(`Error: Could not set up ${opponentData.name}'s team correctly for the League (needs ${MAX_TEAM_SIZE} Pokémon from regular pool).`);
+        switchScreen('pokemonLeague');
+        return;
+    }
+
+    battleState.playerActiveIndex = 0;
+    battleState.opponentActiveIndex = 0;
+    updateBattleUI();
+    switchScreen('battle');
+    startBattleMusic();
+    const opponent = battleState.opponentTeam[0];
+    const introMsg = `Pokémon League: ${opponentData.name} challenges you! ${opponentData.name} sent out ${opponent.name.toUpperCase()}!`;
+    typeMessage(introMsg, () => {
+        battleState.onMessageComplete = () => {
+            typeMessage(`Go ${battleState.playerTeam[0].name.toUpperCase()}!`, startTurnPhase);
+        }
+    });
+}
+
+// --- Team Rocket Functies ---
+function showTeamRocketScreen() {
+    if (!selectedTrainerData || selectedTrainerData.team.filter(p=>p && p.currentHP > 0).length < 1) {
+        alert(`You need at least 1 healthy Pokémon to challenge Team Rocket!`);
+        switchScreen('playMenu');
+        return;
+    }
+    battleState.currentTeamRocketGruntIndex = selectedTrainerData.teamRocketDefeatedCount || 0;
+
+    if (selectedTrainerData.defeatedAllTeamRocket) {
+        updateTeamRocketScreenUI();
+        switchScreen('teamRocket');
+        return;
+    }
+    updateTeamRocketScreenUI();
+    switchScreen('teamRocket');
+}
+
+function updateTeamRocketScreenUI() {
+    if (selectedTrainerData.defeatedAllTeamRocket || battleState.currentTeamRocketGruntIndex >= TEAM_ROCKET_GRUNTS_TO_DEFEAT) {
+        teamRocketProgressEl.textContent = "TEAM ROCKET DEFEATED!";
+        if (teamRocketOpponentNameEl) teamRocketOpponentNameEl.textContent = "N/A";
+        if (teamRocketOpponentCardEl) teamRocketOpponentCardEl.src = "";
+        btnStartTeamRocketBattle.style.display = 'none';
+    } else {
+        teamRocketProgressEl.textContent = `Grunt ${battleState.currentTeamRocketGruntIndex + 1} of ${TEAM_ROCKET_GRUNTS_TO_DEFEAT}`;
+        if (teamRocketOpponentNameEl) teamRocketOpponentNameEl.textContent = `TEAM ROCKET GRUNT #${battleState.currentTeamRocketGruntIndex + 1}`;
+        if (teamRocketOpponentCardEl) teamRocketOpponentCardEl.src = teamRocketCardData.url;
+        btnStartTeamRocketBattle.style.display = 'block';
+        btnStartTeamRocketBattle.textContent = `BATTLE GRUNT #${battleState.currentTeamRocketGruntIndex + 1}`;
+    }
+}
+
+function prepareTeamRocketBattle() {
+    prepareBattle(startNextTeamRocketBattleActual, false, false, true, false);
+}
+
+
+function startNextTeamRocketBattleActual() {
+    battleState.isTeamRocketBattle = true;
+    battleState.isWildBattle = false;
+    battleState.isGymBattle = false;
+    battleState.isEliteFourBattle = false;
+    battleState.isPokemonLeagueBattle = false;
+    battleState.isRaidBattle = false;
+    screens.battle.style.backgroundImage = getRandomBattleBackground();
+
+    battleState.opponentTeam = getUniqueRandomPokemon([], pokemonPool.filter(p => !p.isSpecialCodePokemon), TEAM_ROCKET_POKEMON_COUNT)
+        .map(data => createPokemonFromData(data, true, false));
+
+    if (battleState.opponentTeam.length < TEAM_ROCKET_POKEMON_COUNT) {
+        alert(`Error: Could not set up Team Rocket Grunt's team (needs ${TEAM_ROCKET_POKEMON_COUNT} Pokémon from regular pool).`);
+        switchScreen('teamRocket');
+        return;
+    }
+
+    battleState.playerActiveIndex = 0;
+    battleState.opponentActiveIndex = 0;
+    updateBattleUI();
+    switchScreen('battle');
+    startBattleMusic();
+    const opponent = battleState.opponentTeam[0];
+    const gruntName = `Team Rocket Grunt #${selectedTrainerData.teamRocketDefeatedCount + 1}`;
+    const introMsg = `${gruntName} ambushes you! ${gruntName} sent out ${opponent.name.toUpperCase()}!`;
+    typeMessage(introMsg, () => {
+        battleState.onMessageComplete = () => {
+            typeMessage(`Go ${battleState.playerTeam[0].name.toUpperCase()}!`, startTurnPhase);
+        }
+    });
+}
+
+// --- Raid Battle Functies ---
+function startRaidBattleActual() {
+    battleState.isRaidBattle = true;
+    battleState.isWildBattle = false;
+    battleState.isGymBattle = false;
+    battleState.isEliteFourBattle = false;
+    battleState.isPokemonLeagueBattle = false;
+    battleState.isTeamRocketBattle = false;
+    screens.battle.style.backgroundImage = getRandomBattleBackground();
+
+    battleState.opponentTeam = [];
+    const regularPool = pokemonPool.filter(p => !p.isSpecialCodePokemon);
+    if (regularPool.length === 0) {
+        alert("Error: Regular Pokemon pool is empty, cannot start Raid battle.");
+        switchScreen('mainMenu');
+        return;
+    }
+    const raidBossData = { ...regularPool[Math.floor(Math.random() * regularPool.length)] }; // Clone data
+    raidBossData.hp *= 6; // Multiply HP by 6
+
+    battleState.opponentTeam.push(createPokemonFromData(raidBossData, true, false)); // Mark as opponent, not for player team initially
+
+    battleState.playerActiveIndex = 0;
+    battleState.opponentActiveIndex = 0;
+
+    updateBattleUI();
+    switchScreen('battle');
+    startBattleMusic();
+    const opponent = battleState.opponentTeam[0];
+    const introMsg = `A GIGANTIC ${opponent.isShiny ? 'SHINY ' : ''}${opponent.name.toUpperCase()} appeared for a Raid Battle!`;
+    typeMessage(introMsg, () => {
+        battleState.onMessageComplete = () => {
+            typeMessage(`Go ${battleState.playerTeam[0].name.toUpperCase()}!`, startTurnPhase);
+        }
+    });
+}
+
+
+// --- Battle Logic ---
 function startTurnPhase() { if(!battleState.playerTeam[battleState.playerActiveIndex] || !battleState.opponentTeam[battleState.opponentActiveIndex]) {console.warn("Attempted to start turn phase with undefined active Pokemon."); return;} battleState.playerTeam[battleState.playerActiveIndex].flinch = false; if (battleState.opponentTeam[battleState.opponentActiveIndex]) battleState.opponentTeam[battleState.opponentActiveIndex].flinch = false; battleState.attackerUsedMoveFirstThisTurn = false; determineMoveOrder(); }
 function determineMoveOrder() { if(!battleState.playerTeam[battleState.playerActiveIndex] || !battleState.opponentTeam[battleState.opponentActiveIndex]) {console.warn("Attempted to determine move order with undefined active Pokemon."); return;} const playerPokemon = battleState.playerTeam[battleState.playerActiveIndex]; const opponentPokemon = battleState.opponentTeam[battleState.opponentActiveIndex]; const playerMoveCheck = checkCanMove(playerPokemon, true); if (playerMoveCheck.message) { typeMessage(playerMoveCheck.message, () => { if (!playerMoveCheck.canMove) { battleState.currentActingPokemonIsPlayer = false; opponentActionPhase(); } else { playerActionPhase(); } }); } else { playerActionPhase(); } }
 
@@ -4634,17 +7881,18 @@ function playerActionPhase() {
                 hasAnyUsableItem = true;
             }
             if (battleState.isWildBattle &&
-               (selectedTrainerData.inventory["Poke Ball"] > 0 || selectedTrainerData.inventory["Great Ball"] > 0)) {
+               (selectedTrainerData.inventory["Poke Ball"] > 0 || selectedTrainerData.inventory["Great Ball"] > 0 || selectedTrainerData.inventory["Ultra Ball"] > 0 || selectedTrainerData.inventory["Master Ball"] > 0 )) {
                 hasAnyUsableItem = true;
             }
+            // Shiny Stone cannot be used in battle
         }
-        itemButtonInActionMenu.disabled = !hasAnyUsableItem || battleState.isEliteFourBattle; // Also disable in Gym Battles if desired
+        itemButtonInActionMenu.disabled = !hasAnyUsableItem || battleState.isEliteFourBattle || battleState.isGymBattle || battleState.isPokemonLeagueBattle || battleState.isTeamRocketBattle || battleState.isRaidBattle;
     }
 
     const runButtonInActionMenu = actionMenuEl.querySelector('button[data-action="run"]');
     if (runButtonInActionMenu) {
         runButtonInActionMenu.style.display = 'block';
-        runButtonInActionMenu.disabled = battleState.isGymBattle || battleState.isEliteFourBattle;
+        runButtonInActionMenu.disabled = battleState.isGymBattle || battleState.isEliteFourBattle || battleState.isPokemonLeagueBattle || battleState.isTeamRocketBattle || battleState.isRaidBattle;
     }
 
     const pokemonButtonInActionMenu = actionMenuEl.querySelector('button[data-action="pokemon"]');
@@ -4667,7 +7915,7 @@ function playerActionPhase() {
 }
 
 function opponentActionPhase() { if(!battleState.opponentTeam[battleState.opponentActiveIndex] || !battleState.playerTeam[battleState.playerActiveIndex]) {console.warn("Attempted opponent action phase with undefined active Pokemon."); return;} battleState.playerTurn = false; battleState.currentActingPokemonIsPlayer = false; const opponentPokemon = battleState.opponentTeam[battleState.opponentActiveIndex]; const opponentMoveCheck = checkCanMove(opponentPokemon, false); if (opponentMoveCheck.message) { typeMessage(opponentMoveCheck.message, () => { if (!opponentMoveCheck.canMove) { handleEndOfTurnStatusEffects(); } else { opponentChooseAndExecuteMove(); } }); } else { opponentChooseAndExecuteMove(); } }
-function opponentChooseAndExecuteMove() { if(!battleState.opponentTeam[battleState.opponentActiveIndex] || !battleState.playerTeam[battleState.playerActiveIndex]) {console.warn("Attempted opponent move with undefined active Pokemon."); return;} const attacker = battleState.opponentTeam[battleState.opponentActiveIndex]; const defender = battleState.playerTeam[battleState.playerActiveIndex]; if (attacker.currentHP <= 0) { handleOpponentFaint(); return; } let availableMoves = attacker.moves.filter(m => m.currentPp > 0); if (availableMoves.length === 0) { typeMessage(`${attacker.name.toUpperCase()} has no moves left!`, () => handleEndOfTurnStatusEffects()); return; } const move = availableMoves[Math.floor(Math.random() * availableMoves.length)]; executeMove(attacker, defender, move, false); }
+function opponentChooseAndExecuteMove() { if(!battleState.opponentTeam[battleState.opponentActiveIndex] || !battleState.playerTeam[battleState.playerActiveIndex]) {console.warn("Attempted opponent move with undefined active Pokemon."); return;} const attacker = battleState.opponentTeam[battleState.opponentActiveIndex]; const defender = battleState.playerTeam[battleState.playerActiveIndex]; if (attacker.currentHP <= 0) { handleOpponentFaint(); return; } let availableMoves = attacker.moves.filter(m => m.currentPp > 0); if (availableMoves.length === 0) { typeMessage(`${attacker.name.toUpperCase()} has no moves left! It used Struggle!`, () => { handleEndOfTurnStatusEffects(); }); return; } const move = availableMoves[Math.floor(Math.random() * availableMoves.length)]; executeMove(attacker, defender, move, false); }
 function checkCanMove(pokemon, isPlayer) { if (!pokemon) return { canMove: false, message: null}; const name = pokemon.name.toUpperCase(); if (pokemon.flinch) { pokemon.flinch = false; return { canMove: false, message: `${name} flinched and couldn't move!` }; } if (pokemon.status === "SLP") { if (pokemon.sleepTurns > 0) { pokemon.sleepTurns--; return { canMove: false, message: `${name} is fast asleep.` }; } else { pokemon.status = null; updateStatusTag(pokemon, isPlayer ? playerStatusTagEl : opponentStatusTagEl); return { canMove: true, message: `${name} woke up!` }; } } if (pokemon.status === "FRZ") { if (Math.random() < FREEZE_THAW_CHANCE) { pokemon.status = null; updateStatusTag(pokemon, isPlayer ? playerStatusTagEl : opponentStatusTagEl); return { canMove: true, message: `${name} thawed out!` }; } else { return { canMove: false, message: `${name} is frozen solid!` }; } } if (pokemon.status === "PAR") { if (Math.random() < PARALYSIS_CHANCE_NO_MOVE) { return { canMove: false, message: `${name} is fully paralyzed!` }; } } return { canMove: true, message: null }; }
 function showMoveMenu() { if(!battleState.playerTeam[battleState.playerActiveIndex]) {console.warn("Attempted to show move menu with undefined active Pokemon.");return;} actionMenuEl.style.display = 'none'; battleTextboxEl.style.display = 'none'; itemMenuEl.style.display = 'none'; const pPok = battleState.playerTeam[battleState.playerActiveIndex]; const moveBtns = moveMenuEl.querySelectorAll('button:not(.battle-menu-back-button)'); moveBtns.forEach(b => b.style.visibility = 'hidden'); pPok.moves.forEach((m, i) => { if (moveBtns[i]) { moveBtns[i].style.visibility = 'visible'; moveBtns[i].querySelector('.move-name').textContent = m.name.toUpperCase(); moveBtns[i].querySelector('.move-pp').textContent = `PP ${m.currentPp}/${m.maxPp}`; moveBtns[i].disabled = m.currentPp <= 0; } }); moveMenuEl.style.display = 'grid'; }
 function applyStatChange(targetPokemon, stat, stages, targetName, isSelf) { const statNames = Array.isArray(stat) ? stat : [stat]; let messages = []; let anyChange = false; statNames.forEach(s => { const currentStage = targetPokemon.stats[s] || 0; let newStage = currentStage; if (stages > 0) newStage = Math.min(6, currentStage + stages); else if (stages < 0) newStage = Math.max(-6, currentStage + stages); if (newStage !== currentStage) { targetPokemon.stats[s] = newStage; anyChange = true; if (stages === 1) messages.push(`${targetName.toUpperCase()}'s ${s} rose!`); else if (stages > 1) messages.push(`${targetName.toUpperCase()}'s ${s} sharply rose!`); else if (stages === -1) messages.push(`${(isSelf ? targetName.toUpperCase() : "Foe " + targetName.toUpperCase())}'s ${s} fell!`); else if (stages < -1) messages.push(`${(isSelf ? targetName.toUpperCase() : "Foe " + targetName.toUpperCase())}'s ${s} harshly fell!`); } }); if (!anyChange) messages.push(`${targetName.toUpperCase()}'s ${statNames.join(' and ')} won't go any ${stages > 0 ? 'higher' : 'lower'}!`); return messages; }
@@ -4675,12 +7923,11 @@ function executeMove(attacker, defender, move, isPlayerAttacking) { battleState.
 function processTurnMessages(messages, nextPokemonToActIfApplicable, isOriginalAttackerPlayer) { if (messages.length > 0) { const nextMsg = messages.shift(); typeMessage(nextMsg.message, nextMsg.callback || (() => processTurnMessages(messages, nextPokemonToActIfApplicable, isOriginalAttackerPlayer))); } else { if(!battleState.playerTeam[battleState.playerActiveIndex] || !battleState.opponentTeam[battleState.opponentActiveIndex]) {console.warn("Attempted to process turn end with undefined active Pokemon."); return;} const playerPokemon = battleState.playerTeam[battleState.playerActiveIndex]; const opponentPokemon = battleState.opponentTeam[battleState.opponentActiveIndex]; if (playerPokemon.currentHP <= 0) { handlePlayerFaint(); return; } if (opponentPokemon.currentHP <= 0) { handleOpponentFaint(); return; } if (isOriginalAttackerPlayer) { opponentActionPhase(); } else { handleEndOfTurnStatusEffects(); } } }
 function playerAttack(moveIndex) { if(!battleState.playerTeam[battleState.playerActiveIndex] || !battleState.opponentTeam[battleState.opponentActiveIndex]) {console.warn("Attempted player attack with undefined active Pokemon."); return;} moveMenuEl.style.display = 'none'; const attacker = battleState.playerTeam[battleState.playerActiveIndex]; const defender = battleState.opponentTeam[battleState.opponentActiveIndex]; const move = attacker.moves[moveIndex]; if (!move || move.currentPp <= 0) { playerActionPhase(); return; } battleState.attackerUsedMoveFirstThisTurn = true; executeMove(attacker, defender, move, true); }
 function handleEndOfTurnStatusEffects() { if(!battleState.playerTeam[battleState.playerActiveIndex] || !battleState.opponentTeam[battleState.opponentActiveIndex]) {console.warn("Attempted EOT effects with undefined active Pokemon."); return;} let turnEndMessages = []; let playerFaintedFromStatus = false; let opponentFaintedFromStatus = false; const playerPokemon = battleState.playerTeam[battleState.playerActiveIndex]; const opponentPokemon = battleState.opponentTeam[battleState.opponentActiveIndex]; const applyEOT = (pokemon, isPlayer) => { if (pokemon.currentHP > 0 && pokemon.status) { if (pokemon.status === "BRN" || pokemon.status === "PSN") { const damage = Math.floor(pokemon.maxHP / (pokemon.status === "PSN" ? 8 : 16)); pokemon.currentHP -= damage; turnEndMessages.push({ message: `${pokemon.name.toUpperCase()} was hurt by its ${pokemon.status === "BRN" ? "burn" : "poison"}!` }); if (pokemon.currentHP <= 0) isPlayer ? playerFaintedFromStatus = true : opponentFaintedFromStatus = true; } } }; applyEOT(playerPokemon, true); if (playerFaintedFromStatus) turnEndMessages.push({ message: `${playerPokemon.name.toUpperCase()} fainted!` }); if (opponentPokemon.currentHP > 0) { applyEOT(opponentPokemon, false); if (opponentFaintedFromStatus) turnEndMessages.push({ message: `${opponentPokemon.name.toUpperCase()} fainted!` }); } updateBattleUI(); const showEOTMessages = () => { if (turnEndMessages.length > 0) { const msg = turnEndMessages.shift(); typeMessage(msg.message, showEOTMessages); } else { if (playerPokemon.currentHP <= 0) handlePlayerFaint(); else if (opponentPokemon.currentHP <= 0) handleOpponentFaint(); else setTimeout(startTurnPhase, 800); } }; showEOTMessages(); }
-function showSwitchScreen(isForced = false) { battleState.switchingAfterFaint = isForced; actionMenuEl.style.display = 'none'; moveMenuEl.style.display = 'none'; itemMenuEl.style.display = 'none'; battleTextboxEl.style.display = 'none'; switchGridEl.innerHTML = ''; battleState.playerTeam.forEach((p, i) => { const opt = document.createElement('div'); opt.classList.add('switch-option'); opt.dataset.index = i; const sp = document.createElement('img'); sp.src = p.spriteFrontUrl; sp.alt = p.name.toUpperCase(); opt.appendChild(sp); const nfo = document.createElement('div'); nfo.classList.add('switch-info'); nfo.innerHTML = `<span class="name">${p.name.toUpperCase()} ${p.status ? '('+p.status.toUpperCase()+')' : ''}</span><div class="hp-bar-container"><div class="hp-bar-fill" style="width:${Math.max(0,(p.currentHP/p.maxHP)*100)}%; background-color:${p.currentHP/p.maxHP > 0.5 ? 'var(--hp-high-color)' : (p.currentHP/p.maxHP > 0.2 ? 'var(--hp-medium-color)' : 'var(--hp-low-color)')};"></div></div><div class="hp-numbers">${Math.max(0,Math.floor(p.currentHP))}/${p.maxHP}</div>`; opt.appendChild(nfo); if (p.currentHP <= 0) opt.classList.add('fainted'); else if (i === battleState.playerActiveIndex) opt.classList.add('active'); else opt.addEventListener('click', () => switchPokemonAction(i)); switchGridEl.appendChild(opt); }); switchCancelButton.style.display = isForced ? 'none' : 'block'; switchScreen('switchPokemon'); }
+function showSwitchScreen(isForced = false) { battleState.switchingAfterFaint = isForced; actionMenuEl.style.display = 'none'; moveMenuEl.style.display = 'none'; itemMenuEl.style.display = 'none'; battleTextboxEl.style.display = 'none'; switchGridEl.innerHTML = ''; battleState.playerTeam.forEach((p, i) => { const opt = document.createElement('div'); opt.classList.add('switch-option'); opt.dataset.index = i; const sp = document.createElement('img'); sp.src = p.spriteFrontUrl; sp.alt = p.name.toUpperCase(); opt.appendChild(sp); const nfo = document.createElement('div'); nfo.classList.add('switch-info'); nfo.innerHTML = `<span class="name">${p.name.toUpperCase()}${p.isShiny ? ' (S)' : ''} ${p.status ? '('+p.status.toUpperCase()+')' : ''}</span><div class="hp-bar-container"><div class="hp-bar-fill" style="width:${Math.max(0,(p.currentHP/p.maxHP)*100)}%; background-color:${p.currentHP/p.maxHP > 0.5 ? 'var(--hp-high-color)' : (p.currentHP/p.maxHP > 0.2 ? 'var(--hp-medium-color)' : 'var(--hp-low-color)')};"></div></div><div class="hp-numbers">${Math.max(0,Math.floor(p.currentHP))}/${p.maxHP}</div>`; opt.appendChild(nfo); if (p.currentHP <= 0) opt.classList.add('fainted'); else if (i === battleState.playerActiveIndex) opt.classList.add('active'); else opt.addEventListener('click', () => switchPokemonAction(i)); switchGridEl.appendChild(opt); }); switchCancelButton.style.display = isForced ? 'none' : 'block'; switchScreen('switchPokemon'); }
 function switchPokemonAction(newIndex) { if(!battleState.playerTeam[battleState.playerActiveIndex] || !battleState.playerTeam[newIndex]) {console.warn("Attempted switch with undefined Pokemon."); return;} const oldPok = battleState.playerTeam[battleState.playerActiveIndex]; const newPok = battleState.playerTeam[newIndex]; if (newPok.currentHP <= 0 || newIndex === battleState.playerActiveIndex) return; battleState.playerActiveIndex = newIndex; updateBattleUI(); switchScreen('battle'); let msgs = []; if (!battleState.switchingAfterFaint) { msgs.push({ message: `Come back, ${oldPok.name.toUpperCase()}!`}); battleState.playerTurn = false; } msgs.push({ message: `Go, ${newPok.name.toUpperCase()}!`, callback: null }); const finalCb = () => { battleState.switchingAfterFaint = false; if (!battleState.playerTurn && battleState.opponentTeam[battleState.opponentActiveIndex] && battleState.opponentTeam[battleState.opponentActiveIndex].currentHP > 0) { opponentActionPhase(); } else { startTurnPhase(); } }; const showNxt = () => { if (msgs.length > 0) { const n = msgs.shift(); typeMessage(n.message, n.callback || showNxt); } else { setTimeout(finalCb, 500); } }; showNxt(); }
 
 function finalizeBattleState() {
     if (!selectedTrainerData || !selectedTrainerData.team) return;
-
     battleState.playerTeam.forEach(battlePok => {
         if(!battlePok) return;
         const trainerPok = selectedTrainerData.team.find(p => p && p.id === battlePok.id);
@@ -4691,29 +7938,29 @@ function finalizeBattleState() {
             trainerPok.flinch = false;
             trainerPok.stats = { attack: 0, defense: 0, speed: 0, accuracy: 0, evasion: 0 };
 
-            trainerPok.moves.forEach(tpMove => {
-                tpMove.currentPp = tpMove.maxPp;
-            });
+            if (!battleState.isPokemonLeagueBattle && !battleState.isEliteFourBattle && !battleState.isTeamRocketBattle && !battleState.isRaidBattle) { // Raid toegevoegd
+                trainerPok.moves.forEach(tpMove => {
+                    const baseMoveData = pokemonPool.find(p => p.pokedexId === trainerPok.pokedexId)?.moves.find(m => m.name === tpMove.name);
+                    if (baseMoveData) {
+                        tpMove.currentPp = baseMoveData.maxPp;
+                    }
+                });
+            }
 
             if (battlePok.originalEvolutionData) {
-                const oldMaxHPBeforeRevert = trainerPok.maxHP;
-                const currentHPRatio = (oldMaxHPBeforeRevert > 0) ? (trainerPok.currentHP / oldMaxHPBeforeRevert) : 1;
-
                 trainerPok.pokedexId = battlePok.originalEvolutionData.pokedexId;
                 trainerPok.name = battlePok.originalEvolutionData.name;
                 trainerPok.types = [...battlePok.originalEvolutionData.types];
                 trainerPok.maxHP = battlePok.originalEvolutionData.maxHP;
-                trainerPok.currentHP = Math.max(0, Math.floor(currentHPRatio * trainerPok.maxHP));
+                trainerPok.currentHP = Math.min(Math.max(0, battlePok.currentHP), trainerPok.maxHP);
                 if (battlePok.currentHP <= 0) trainerPok.currentHP = 0;
                 trainerPok.baseStats = JSON.parse(JSON.stringify(battlePok.originalEvolutionData.baseStats));
                 trainerPok.moves = battlePok.originalEvolutionData.moves.map(m => ({ ...m, currentPp: m.maxPp }));
                 trainerPok.isShiny = battlePok.originalEvolutionData.isShiny;
-
                 const shinyBaseUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon";
                 const basePokemonForSprite = pokemonPool.find(baseP => baseP.pokedexId === trainerPok.pokedexId) || {};
                 trainerPok.spriteFrontUrl = trainerPok.isShiny ? `${shinyBaseUrl}/shiny/${trainerPok.pokedexId}.png` : (basePokemonForSprite.spriteFront || `${shinyBaseUrl}/${trainerPok.pokedexId}.png`);
                 trainerPok.spriteBackUrl = trainerPok.isShiny ? `${shinyBaseUrl}/back/shiny/${trainerPok.pokedexId}.png` : (basePokemonForSprite.spriteBack || `${shinyBaseUrl}/back/${trainerPok.pokedexId}.png`);
-
                 trainerPok.originalEvolutionData = null;
                 battlePok.originalEvolutionData = null;
             }
@@ -4730,7 +7977,9 @@ function handlePlayerFaint() {
     const cb = () => {
         const rem = battleState.playerTeam.filter(pk => pk.currentHP > 0);
         if (rem.length === 0) {
+            stopBattleMusic(true);
             let coinsEarned = 0;
+            let goldEarned = 0; // NIEUW
             let lossMessage = "You have no more Pokémon! You lost the battle!";
             if (battleState.isGymBattle) {
                 coinsEarned = 10;
@@ -4738,21 +7987,38 @@ function handlePlayerFaint() {
             } else if (battleState.isEliteFourBattle) {
                 coinsEarned = 20;
                 lossMessage = `You lost to Elite Four ${eliteFourData[battleState.currentEliteFourMemberKey].name}! You earned ${coinsEarned} coins.`;
+            } else if (battleState.isPokemonLeagueBattle) {
+                coinsEarned = 25;
+                lossMessage = `You were defeated in the Pokémon League by ${currentLeagueOrder[battleState.currentLeagueOpponentIndex].name}! You earned ${coinsEarned} coins.`;
+                if (selectedTrainerData) {
+                    selectedTrainerData.currentLeagueOpponentIndex = 0;
+                    selectedTrainerData.leagueBattlesWon = 0;
+                    selectedTrainerData.defeatedPokemonLeague = false;
+                }
+            } else if (battleState.isTeamRocketBattle) {
+                coinsEarned = 5;
+                lossMessage = `You were defeated by Team Rocket Grunt #${selectedTrainerData.teamRocketDefeatedCount + 1}! You earned ${coinsEarned} coins.`;
+            } else if (battleState.isRaidBattle) { // NIEUW
+                coinsEarned = 10; // Of geen coins voor een verloren raid
+                lossMessage = `You were defeated by the Raid Pokémon! You earned ${coinsEarned} coins.`;
             } else if (!battleState.isWildBattle) {
                 coinsEarned = 5;
                 lossMessage = `You lost the Quick Battle! You earned ${coinsEarned} coins.`;
             }
-            if (selectedTrainerData && coinsEarned > 0) {
-                selectedTrainerData.coins = (selectedTrainerData.coins || 0) + coinsEarned;
-                updateCoinDisplay();
+            if (selectedTrainerData) {
+                if (coinsEarned > 0) {
+                    selectedTrainerData.coins = (selectedTrainerData.coins || 0) + coinsEarned;
+                }
+                if (goldEarned > 0) { // Hoewel hier geen gold wordt verdiend bij verlies
+                     selectedTrainerData.gold = (selectedTrainerData.gold || 0) + goldEarned;
+                }
+                updateCurrencyDisplays();
             }
             typeMessage(lossMessage, () => setTimeout(() => {
                 finalizeBattleState();
-                battleState.isWildBattle = false;
-                battleState.isGymBattle = false;
-                battleState.isEliteFourBattle = false;
-                battleState.currentGymLeaderKey = null;
-                battleState.currentEliteFourMemberKey = null;
+                screens.battle.style.backgroundImage = WILD_BATTLE_BACKGROUND;
+                battleState.isWildBattle = false; battleState.isGymBattle = false; battleState.isEliteFourBattle = false; battleState.isPokemonLeagueBattle = false; battleState.isTeamRocketBattle = false; battleState.isRaidBattle = false;
+                battleState.currentGymLeaderKey = null; battleState.currentEliteFourMemberKey = null;
                 switchScreen('mainMenu');
             }, 1000));
         } else {
@@ -4769,84 +8035,141 @@ function handleOpponentFaint() {
         console.warn("Attempted opponent faint with undefined Pokemon."); return;
     }
     const o = battleState.opponentTeam[battleState.opponentActiveIndex];
-    const cb = () => {
-        let coinsEarned = 0;
-        let winMessages = [];
+    let coinsEarned = 0;
+    let goldEarned = 0; // NIEUW
+    let winMessages = [];
 
-        if (battleState.isWildBattle) {
-            coinsEarned = 3;
-            winMessages.push(`The wild ${o.name.toUpperCase()} fainted! You earned ${coinsEarned} coins!`);
-        } else if (battleState.isGymBattle) {
-            const remOpponent = battleState.opponentTeam.filter(pk => pk.currentHP > 0);
-            if (remOpponent.length === 0) {
+    const addCurrency = (c, g) => {
+        if (selectedTrainerData) {
+            if (c > 0) selectedTrainerData.coins = (selectedTrainerData.coins || 0) + c;
+            if (g > 0) selectedTrainerData.gold = (selectedTrainerData.gold || 0) + g;
+            updateCurrencyDisplays();
+        }
+    };
+
+    const cb = () => {
+        const remOpponent = battleState.opponentTeam.filter(pk => pk.currentHP > 0);
+        if (remOpponent.length === 0) {
+            stopBattleMusic(true);
+            if (battleState.isWildBattle) {
+                coinsEarned = 3;
+                winMessages.push(`The wild ${o.name.toUpperCase()} fainted! You earned ${coinsEarned} coins!`);
+                addCurrency(coinsEarned, 0);
+            } else if (battleState.isGymBattle) {
                 coinsEarned = 30;
                 const leaderData = gymLeadersData[battleState.currentGymLeaderKey];
                 winMessages.push(`You defeated Gym Leader ${leaderData.name}!`);
-                winMessages.push(`You earned the ${leaderData.badgeName} and ${coinsEarned} coins!`);
+                winMessages.push(`You earned the ${leaderData.name}'s Trainer Card and ${coinsEarned} coins!`);
                 if (selectedTrainerData && !selectedTrainerData.defeatedGymLeaders.includes(battleState.currentGymLeaderKey)) {
                     selectedTrainerData.defeatedGymLeaders.push(battleState.currentGymLeaderKey);
                 }
-            }
-        } else if (battleState.isEliteFourBattle) {
-            const remOpponent = battleState.opponentTeam.filter(pk => pk.currentHP > 0);
-            if (remOpponent.length === 0) {
+                addCurrency(coinsEarned, 0);
+            } else if (battleState.isEliteFourBattle) {
                 coinsEarned = 60;
                 const memberData = eliteFourData[battleState.currentEliteFourMemberKey];
                 winMessages.push(`You defeated Elite Four ${memberData.name}!`);
-                winMessages.push(`You earned their Trainer Card and ${coinsEarned} coins!`);
-                if (selectedTrainerData && !selectedTrainerData.defeatedEliteFourMembers.includes(battleState.currentEliteFourMemberKey)) {
+                winMessages.push(`You earned the ${memberData.name}'s Trainer Card and ${coinsEarned} coins!`);
+                 if (selectedTrainerData && !selectedTrainerData.defeatedEliteFourMembers.includes(battleState.currentEliteFourMemberKey)) {
                     selectedTrainerData.defeatedEliteFourMembers.push(battleState.currentEliteFourMemberKey);
                 }
-            }
-        } else { // Quick Battle
-             const remOpponent = battleState.opponentTeam.filter(pk => pk.currentHP > 0);
-             if (remOpponent.length === 0) {
+                addCurrency(coinsEarned, 0);
+            } else if (battleState.isPokemonLeagueBattle) {
+                selectedTrainerData.leagueBattlesWon = (selectedTrainerData.leagueBattlesWon || 0) + 1;
+                battleState.leagueBattlesWon = selectedTrainerData.leagueBattlesWon;
+                battleState.currentLeagueOpponentIndex++;
+                if (battleState.leagueBattlesWon >= currentLeagueOrder.length) {
+                    coinsEarned = 150;
+                    goldEarned = 20; // Extra gold for becoming champion
+                    winMessages.push(`You have defeated the Pokémon League!`);
+                    winMessages.push(`YOU ARE THE POKéMON MASTER! You earned ${coinsEarned} coins and ${goldEarned} Gold!`);
+                    selectedTrainerData.defeatedPokemonLeague = true;
+                    addCurrency(coinsEarned, goldEarned);
+                } else {
+                    coinsEarned = 50;
+                    goldEarned = 2;
+                    const defeatedLeagueTrainerName = currentLeagueOrder[battleState.currentLeagueOpponentIndex - 1].name;
+                    winMessages.push(`You defeated ${defeatedLeagueTrainerName}! You earned ${coinsEarned} coins and ${goldEarned} Gold!`);
+                    addCurrency(coinsEarned, goldEarned);
+                }
+            } else if (battleState.isTeamRocketBattle) {
                 coinsEarned = 15;
-                winMessages.push(`You defeated the opponent and earned ${coinsEarned} coins!`);
-             }
+                winMessages.push(`You defeated Team Rocket Grunt #${selectedTrainerData.teamRocketDefeatedCount + 1}! You earned ${coinsEarned} coins.`);
+                addCurrency(coinsEarned, 0);
+                selectedTrainerData.teamRocketDefeatedCount = (selectedTrainerData.teamRocketDefeatedCount || 0) + 1;
+                battleState.currentTeamRocketGruntIndex = selectedTrainerData.teamRocketDefeatedCount;
+
+                if (selectedTrainerData.teamRocketDefeatedCount >= TEAM_ROCKET_GRUNTS_TO_DEFEAT) {
+                    winMessages.push(`You've driven off Team Rocket! You received 5 Ultra Balls, 50 bonus coins and 5 Gold!`); // Gold toegevoegd
+                    selectedTrainerData.inventory["Ultra Ball"] = (selectedTrainerData.inventory["Ultra Ball"] || 0) + 5;
+                    addCurrency(50, 5); // 50 coins, 5 gold
+                    selectedTrainerData.defeatedAllTeamRocket = true;
+                    if (!selectedTrainerData.collectedSpecialCards) selectedTrainerData.collectedSpecialCards = [];
+                    if (!selectedTrainerData.collectedSpecialCards.some(card => card.name === teamRocketCardData.name)) {
+                         selectedTrainerData.collectedSpecialCards.push(teamRocketCardData);
+                         winMessages.push(`You obtained the ${teamRocketCardData.name} card!`);
+                    }
+                }
+            } else if (battleState.isRaidBattle) { // NIEUW
+                goldEarned = 10;
+                winMessages.push(`You defeated the Raid Pokémon! You earned ${goldEarned} Gold!`);
+                addCurrency(0, goldEarned);
+            }
+             else { // Quick Battle
+                 coinsEarned = 15;
+                 winMessages.push(`You defeated the opponent and earned ${coinsEarned} coins!`);
+                 addCurrency(coinsEarned, 0);
+            }
         }
 
-        if (selectedTrainerData && coinsEarned > 0) {
-            selectedTrainerData.coins = (selectedTrainerData.coins || 0) + coinsEarned;
-            updateCoinDisplay();
-        }
-
-        const processWinMessages = () => {
+        const processWinMessagesSequence = () => {
             if (winMessages.length > 0) {
-                typeMessage(winMessages.shift(), processWinMessages);
+                typeMessage(winMessages.shift(), processWinMessagesSequence);
             } else {
-                const remOpponent = battleState.opponentTeam.filter(pk => pk.currentHP > 0);
-                if (remOpponent.length === 0) { // All opponent Pokémon fainted
-                    setTimeout(() => {
+                const stillOpponentsLeft = battleState.opponentTeam.filter(pk => pk.currentHP > 0).length > 0;
+                if (!stillOpponentsLeft) {
+                    if (battleState.isPokemonLeagueBattle && !selectedTrainerData.defeatedPokemonLeague) {
                         finalizeBattleState();
-                        battleState.isWildBattle = false;
-                        battleState.isGymBattle = false;
-                        battleState.isEliteFourBattle = false;
-                        battleState.currentGymLeaderKey = null;
-                        battleState.currentEliteFourMemberKey = null;
-                        switchScreen('mainMenu');
-                    }, 1200);
-                } else { // Opponent has more Pokémon
-                    let nxtIdx = -1;
-                    for (let i=0; i<battleState.opponentTeam.length; i++) if (battleState.opponentTeam[i].currentHP > 0) { nxtIdx = i; break; }
+                        switchScreen('pokemonLeague');
+                        updatePokemonLeagueScreenUI();
+                    } else if (battleState.isTeamRocketBattle && !selectedTrainerData.defeatedAllTeamRocket) {
+                        finalizeBattleState();
+                        switchScreen('teamRocket');
+                        updateTeamRocketScreenUI();
+                    } else {
+                        setTimeout(() => {
+                            finalizeBattleState();
+                            screens.battle.style.backgroundImage = WILD_BATTLE_BACKGROUND;
+                            battleState.isWildBattle = false; battleState.isGymBattle = false; battleState.isEliteFourBattle = false; battleState.isPokemonLeagueBattle = false; battleState.isTeamRocketBattle = false; battleState.isRaidBattle = false;
+                            battleState.currentGymLeaderKey = null; battleState.currentEliteFourMemberKey = null;
+                            switchScreen('mainMenu');
+                        }, 1200);
+                    }
+                } else {
+                    let nxtIdx = battleState.opponentTeam.findIndex(p => p.currentHP > 0);
                     if (nxtIdx !== -1) {
                         battleState.opponentActiveIndex = nxtIdx;
                         const newOpp = battleState.opponentTeam[nxtIdx];
-                        const opponentName = battleState.isGymBattle ? gymLeadersData[battleState.currentGymLeaderKey].name :
-                                             battleState.isEliteFourBattle ? eliteFourData[battleState.currentEliteFourMemberKey].name : "Opponent";
-                        typeMessage(`${opponentName} sent out ${newOpp.name.toUpperCase()}!`, () => {
+                        let opponentTrainerName = "Opponent";
+                        if (battleState.isGymBattle) opponentTrainerName = gymLeadersData[battleState.currentGymLeaderKey].name;
+                        else if (battleState.isEliteFourBattle) opponentTrainerName = eliteFourData[battleState.currentEliteFourMemberKey].name;
+                        else if (battleState.isPokemonLeagueBattle) opponentTrainerName = currentLeagueOrder[battleState.currentLeagueOpponentIndex].name;
+                        else if (battleState.isTeamRocketBattle) opponentTrainerName = `Team Rocket Grunt #${selectedTrainerData.teamRocketDefeatedCount + 1}`;
+                        // Raid opponent name is just the Pokemon's name, already handled by updateBattleUI
+
+                        typeMessage(`${opponentTrainerName} sent out ${newOpp.name.toUpperCase()}!`, () => {
                             updateBattleUI();
                             setTimeout(startTurnPhase, 800);
                         });
-                    } else { // Should not happen if remOpponent.length > 0
-                        typeMessage("Error: Opponent has no more Pokémon, but battle didn't end?", () => { finalizeBattleState(); switchScreen('mainMenu'); });
+                    } else {
+                        console.error("Error: Opponent has no more Pokémon, but battle didn't end as expected.");
+                        finalizeBattleState(); switchScreen('mainMenu');
                     }
                 }
             }
         };
-        typeMessage(`Foe's ${o.name.toUpperCase()} fainted!`, processWinMessages);
+        typeMessage(`Foe's ${o.name.toUpperCase()} fainted!`, processWinMessagesSequence);
     };
-    cb(); // Directly call, typeMessage is handled inside processWinMessages
+    cb();
     updateBattleUI();
 }
 
@@ -4863,6 +8186,8 @@ function evolvePokemon(pokemonToEvolve, evolvedFormData, isPermanentEvolution = 
     const originalName = pokemonToEvolve.name.toUpperCase();
     const originalPokedexId = pokemonToEvolve.pokedexId;
     const wasShiny = pokemonToEvolve.isShiny;
+
+    markAsSeen(evolvedFormData.pokedexId, wasShiny);
 
     if (!isPermanentEvolution && !pokemonToEvolve.originalEvolutionData) {
         pokemonToEvolve.originalEvolutionData = {
@@ -4897,18 +8222,20 @@ function evolvePokemon(pokemonToEvolve, evolvedFormData, isPermanentEvolution = 
     if (isPermanentEvolution) {
         const teamPokemonInstance = selectedTrainerData.team.find(p => p && p.id === pokemonToEvolve.id);
         if (teamPokemonInstance) {
-            teamPokemonInstance.pokedexId = pokemonToEvolve.pokedexId;
-            teamPokemonInstance.name = pokemonToEvolve.name.toUpperCase();
-            teamPokemonInstance.types = [...pokemonToEvolve.types];
-            teamPokemonInstance.maxHP = pokemonToEvolve.maxHP;
-            teamPokemonInstance.currentHP = pokemonToEvolve.currentHP;
-            teamPokemonInstance.baseStats = JSON.parse(JSON.stringify(pokemonToEvolve.baseStats));
-            teamPokemonInstance.moves = pokemonToEvolve.moves.map(m => ({...m}));
-            teamPokemonInstance.isShiny = pokemonToEvolve.isShiny;
-            teamPokemonInstance.spriteFrontUrl = pokemonToEvolve.spriteFrontUrl;
-            teamPokemonInstance.spriteBackUrl = pokemonToEvolve.spriteBackUrl;
-            teamPokemonInstance.evolvesToPokedexId = pokemonToEvolve.evolvesToPokedexId;
-            teamPokemonInstance.originalEvolutionData = null;
+            Object.assign(teamPokemonInstance, {
+                pokedexId: pokemonToEvolve.pokedexId,
+                name: pokemonToEvolve.name.toUpperCase(),
+                types: [...pokemonToEvolve.types],
+                maxHP: pokemonToEvolve.maxHP,
+                currentHP: pokemonToEvolve.currentHP,
+                baseStats: JSON.parse(JSON.stringify(pokemonToEvolve.baseStats)),
+                moves: pokemonToEvolve.moves.map(m => ({...m})),
+                isShiny: pokemonToEvolve.isShiny,
+                spriteFrontUrl: pokemonToEvolve.spriteFrontUrl,
+                spriteBackUrl: pokemonToEvolve.spriteBackUrl,
+                evolvesToPokedexId: pokemonToEvolve.evolvesToPokedexId,
+                originalEvolutionData: null
+            });
             saveGame();
         }
     }
@@ -4922,7 +8249,7 @@ function useEvolutionItem(itemName) {
 
     if (evolutionTargetData && selectedTrainerData.inventory[itemName] > 0) {
         selectedTrainerData.inventory[itemName]--;
-        if (!isPermanent) saveGame(); // Save immediately for temp stones as they are consumed
+        if (!isPermanent) saveGame(); // Permanent evolution already saves in evolvePokemon
 
         itemMenuEl.style.display = 'none';
         typeMessage(`${selectedTrainerData.name} used a ${itemName}!`, () => {
@@ -4930,12 +8257,9 @@ function useEvolutionItem(itemName) {
                 playerPokemonSpriteEl.parentElement.classList.add('flash-anim');
                 setTimeout(() => {
                     playerPokemonSpriteEl.parentElement.classList.remove('flash-anim');
-
                     const originalName = evolvePokemon(playerPokemon, evolutionTargetData, isPermanent);
-                    updateBattleUI(); // Update UI with new Pokémon form
-
+                    updateBattleUI();
                     typeMessage(`Congratulations! Your ${originalName} evolved into ${playerPokemon.name.toUpperCase()}!${isPermanent ? " (Permanently)" : ""}`, () => {
-                        if (isPermanent) saveGame(); // Save again if permanent to persist the evolution itself
                         opponentActionPhase();
                     });
                 }, 1000);
@@ -4960,51 +8284,56 @@ function throwPokeball(itemName) {
     }
 
     selectedTrainerData.inventory[itemName]--;
-    saveGame(); // Save inventory change
+    saveGame();
 
     const opponentPokemon = battleState.opponentTeam[battleState.opponentActiveIndex];
     typeMessage(`${selectedTrainerData.name} used a ${itemName}!`, () => {
         const pokeballAnim = document.createElement('div');
         pokeballAnim.classList.add('pokeball-throw-animation');
-
+        if (itemName === "Master Ball") pokeballAnim.classList.add('masterball');
         const playerRect = playerPokemonSpriteEl.getBoundingClientRect();
         const opponentRect = opponentPokemonSpriteEl.getBoundingClientRect();
         const arenaRect = screens.battle.querySelector('.battle-arena').getBoundingClientRect();
-
         pokeballAnim.style.left = `${playerRect.left + playerRect.width / 2 - arenaRect.left - 15}px`;
         pokeballAnim.style.top = `${playerRect.bottom - arenaRect.top - 30 - 15}px`;
-
         pokeballAnim.style.setProperty('--target-x', `${opponentRect.left + opponentRect.width / 2 - (playerRect.left + playerRect.width / 2)}px`);
         pokeballAnim.style.setProperty('--target-y', `${opponentRect.top + opponentRect.height / 2 - (playerRect.bottom - 30)}px`);
 
-
         if (itemName === "Great Ball") pokeballAnim.style.backgroundImage = 'var(--item-icon-greatball)';
+        else if (itemName === "Ultra Ball") pokeballAnim.style.backgroundImage = 'var(--item-icon-ultraball)';
+        else if (itemName === "Master Ball") pokeballAnim.style.backgroundImage = 'var(--item-icon-masterball)';
 
         attackAnimationLayer.appendChild(pokeballAnim);
 
         setTimeout(() => {
             pokeballAnim.remove();
-            const catchRateBase = itemName === "Great Ball" ? 1.5 : 1;
-            const maxHP = opponentPokemon.maxHP;
-            const currentHP = opponentPokemon.currentHP;
-            let catchChance = (((3 * maxHP - 2 * currentHP) * 45 * catchRateBase) / (3 * maxHP)) / 255; // Simplified catch rate
-            if (opponentPokemon.status && (opponentPokemon.status === "SLP" || opponentPokemon.status === "FRZ")) catchChance *= 2.5;
-            else if (opponentPokemon.status && (opponentPokemon.status === "PAR" || opponentPokemon.status === "PSN" || opponentPokemon.status === "BRN")) catchChance *= 1.5;
+            let catchSuccess = false;
+            if (itemName === "Master Ball") {
+                catchSuccess = true;
+            } else {
+                const catchRateBase = itemName === "Ultra Ball" ? 2 : (itemName === "Great Ball" ? 1.5 : 1);
+                const maxHP = opponentPokemon.maxHP;
+                const currentHP = opponentPokemon.currentHP;
+                let catchChance = (((3 * maxHP - 2 * currentHP) * 45 * catchRateBase) / (3 * maxHP)) / 255;
+                if (opponentPokemon.status && (opponentPokemon.status === "SLP" || opponentPokemon.status === "FRZ")) catchChance *= 2.5;
+                else if (opponentPokemon.status && (opponentPokemon.status === "PAR" || opponentPokemon.status === "PSN" || opponentPokemon.status === "BRN")) catchChance *= 1.5;
+                catchSuccess = (Math.random() < catchChance || opponentPokemon.currentHP <= 1);
+            }
 
-            if (Math.random() < catchChance || opponentPokemon.currentHP <= 1) { // Auto-catch at 1HP or less
+
+            if (catchSuccess) {
+                stopBattleMusic(true);
                 typeMessage(`Gotcha! ${opponentPokemon.name.toUpperCase()} was caught!`, () => {
                     opponentPokemonSpriteEl.parentElement.classList.add('pokemon-caught-flash');
                     setTimeout(() => {
                         opponentPokemonSpriteEl.parentElement.classList.remove('pokemon-caught-flash');
                         const caughtPokemonData = pokemonPool.find(p => p.pokedexId === opponentPokemon.pokedexId);
                         const newPlayerPokemon = createPokemonFromData(
-                            {...caughtPokemonData, isShiny: opponentPokemon.isShiny}, // Pass base data, preserve shiny status
-                            false, // isOpponent
-                            true   // forPlayerTeam
+                            {...caughtPokemonData, isShiny: opponentPokemon.isShiny},
+                            false, true
                         );
-                        newPlayerPokemon.currentHP = Math.max(1, opponentPokemon.currentHP); // Retain HP (or at least 1)
-                        newPlayerPokemon.status = opponentPokemon.status; // Retain status
-
+                        newPlayerPokemon.currentHP = Math.max(1, opponentPokemon.currentHP);
+                        newPlayerPokemon.status = opponentPokemon.status;
                         if (selectedTrainerData.team.length < MAX_TEAM_SIZE) {
                             selectedTrainerData.team.push(newPlayerPokemon);
                             alert(`${newPlayerPokemon.name.toUpperCase()}${newPlayerPokemon.isShiny ? " (Shiny)" : ""} was added to your team!`);
@@ -5014,15 +8343,16 @@ function throwPokeball(itemName) {
                         } else {
                              alert(`Team and PC Box are full! Cannot catch ${newPlayerPokemon.name.toUpperCase()}.`);
                         }
-                        finalizeBattleState(); // This will saveGame()
+                        finalizeBattleState();
                         battleState.isWildBattle = false;
+                        screens.battle.style.backgroundImage = WILD_BATTLE_BACKGROUND;
                         switchScreen('mainMenu');
                     }, 600);
                 });
             } else {
                 typeMessage(`Oh no! The Pokémon broke free!`, opponentActionPhase);
             }
-        }, 3500); // Duration of pokeball throw/wiggle animation
+        }, itemName === "Master Ball" ? 1000 : 3500);
     });
 }
 
@@ -5052,12 +8382,16 @@ function showItemMenu() {
 
 
     if (battleState.isWildBattle) {
-        const balls = ["Poke Ball", "Great Ball"];
+        const balls = ["Poke Ball", "Great Ball", "Ultra Ball", "Master Ball"];
         balls.forEach(ballName => {
             if (selectedTrainerData.inventory[ballName] > 0) {
                 const btn = document.createElement('button');
                 btn.dataset.itemName = ballName;
-                const battleIconClass = ballName === "Poke Ball" ? "pokeball" : "greatball";
+                let battleIconClass = "pokeball";
+                if (ballName === "Great Ball") battleIconClass = "greatball";
+                else if (ballName === "Ultra Ball") battleIconClass = "ultraball";
+                else if (ballName === "Master Ball") battleIconClass = "masterball";
+
                 btn.innerHTML = `<span class="item-icon-battle ${battleIconClass}"></span><span class="item-name-battle">${ballName}</span><span class="item-count-battle">x${selectedTrainerData.inventory[ballName]}</span>`;
                 itemMenuEl.appendChild(btn);
                 usableItemsFound = true;
@@ -5111,7 +8445,7 @@ function showGymLeaderDetailScreen(leaderKey) {
     btnStartGymBattle.onclick = () => {
         battleState.currentGymLeaderKey = leaderKey;
         battleState.isEliteFourBattle = false;
-        prepareBattle(startGymBattleActual, false);
+        prepareBattle(startGymBattleActual, false, false, false, false);
     };
     switchScreen('gymLeaderDetail');
 }
@@ -5145,7 +8479,7 @@ function showEliteFourDetailScreen(memberKey) {
     btnStartEliteFourBattle.onclick = () => {
         battleState.currentEliteFourMemberKey = memberKey;
         battleState.isEliteFourBattle = true;
-        prepareBattle(startEliteFourBattleActual, true);
+        prepareBattle(startEliteFourBattleActual, true, false, false, false);
     };
     switchScreen('eliteFourDetail');
 }
@@ -5156,60 +8490,69 @@ function showMyCardsScreen() {
         switchScreen('mainMenu');
         return;
     }
-    collectedCardsGridEl.innerHTML = '';
-    collectedEliteFourCardsGridEl.innerHTML = '';
-    collectedBadgesGridEl.innerHTML = '';
-
-    let hasGymCards = false;
-    let hasEliteFourCards = false;
-    let hasBadges = false;
-
+    displayedCardCollection = [];
     (selectedTrainerData.defeatedGymLeaders || []).forEach(leaderKey => {
         const leaderData = gymLeadersData[leaderKey];
-        if (leaderData) {
-            hasGymCards = true;
-            const cardItem = document.createElement('div');
-            cardItem.classList.add('collected-card-item');
-            const cardImg = document.createElement('img');
-            cardImg.src = leaderData.cardUrl;
-            cardImg.alt = leaderData.name + " Card";
-            cardItem.appendChild(cardImg);
-            collectedCardsGridEl.appendChild(cardItem);
-
-            hasBadges = true;
-            const badgeItem = document.createElement('div');
-            badgeItem.classList.add('collected-badge-item');
-            const badgeImg = document.createElement('img');
-            badgeImg.src = leaderData.badgeUrl;
-            badgeImg.alt = leaderData.badgeName;
-            const badgeNameP = document.createElement('p');
-            badgeNameP.textContent = `${leaderData.badgeName} (${leaderData.name.toUpperCase()})`;
-            badgeItem.appendChild(badgeImg);
-            badgeItem.appendChild(badgeNameP);
-            collectedBadgesGridEl.appendChild(badgeItem);
+        if (leaderData && leaderData.cardUrl) {
+            displayedCardCollection.push({ name: leaderData.name, url: leaderData.cardUrl, type: 'Gym Leader' });
         }
     });
-
     (selectedTrainerData.defeatedEliteFourMembers || []).forEach(memberKey => {
         const memberData = eliteFourData[memberKey];
-        if (memberData) {
-            hasEliteFourCards = true;
-            const cardItem = document.createElement('div');
-            cardItem.classList.add('collected-card-item');
-            const cardImg = document.createElement('img');
-            cardImg.src = memberData.cardUrl;
-            cardImg.alt = memberData.name + " Card";
-            cardItem.appendChild(cardImg);
-            collectedEliteFourCardsGridEl.appendChild(cardItem);
+        if (memberData && memberData.cardUrl) {
+            displayedCardCollection.push({ name: memberData.name, url: memberData.cardUrl, type: 'Elite Four' });
+        }
+    });
+    if (selectedTrainerData.defeatedPokemonLeague) {
+        pokemonLeagueTrainers.forEach(leagueTrainer => {
+             if (leagueTrainer.cardUrl) {
+                displayedCardCollection.push({ name: leagueTrainer.name, url: leagueTrainer.cardUrl, type: 'League Trainer'});
+             }
+        });
+    }
+    (selectedTrainerData.collectedSpecialCards || []).forEach(specialCard => {
+        if (!displayedCardCollection.some(card => card.name === specialCard.name && card.url === specialCard.url)) {
+            displayedCardCollection.push(specialCard);
         }
     });
 
+    currentCardIndex = 0;
+    updateDisplayedCard();
 
-    if (noCollectedCardsMsgEl) noCollectedCardsMsgEl.style.display = hasGymCards ? 'none' : 'block';
-    if (noCollectedEliteFourCardsMsgEl) noCollectedEliteFourCardsMsgEl.style.display = hasEliteFourCards ? 'none' : 'block';
-    if (noCollectedBadgesMsgEl) noCollectedBadgesMsgEl.style.display = hasBadges ? 'none' : 'block';
-
+    if (noCollectedCardsMsgEl) {
+        noCollectedCardsMsgEl.style.display = displayedCardCollection.length === 0 ? 'block' : 'none';
+    }
+    const cardViewerControls = document.querySelector('#myCardsScreen .card-viewer-controls');
+    if (cardViewerControls) {
+        cardViewerControls.style.display = displayedCardCollection.length > 0 ? 'flex' : 'none';
+    }
     switchScreen('myCards');
+}
+
+function updateDisplayedCard() {
+    const cardViewerControls = document.querySelector('#myCardsScreen .card-viewer-controls');
+    if (displayedCardCollection.length === 0) {
+        if (displayedCardImageEl) {
+            displayedCardImageEl.src = "";
+            displayedCardImageEl.alt = "No cards collected";
+        }
+        if(prevCardButton) prevCardButton.disabled = true;
+        if(nextCardButton) nextCardButton.disabled = true;
+        if(cardViewerControls) cardViewerControls.style.display = 'none';
+        if(noCollectedCardsMsgEl) noCollectedCardsMsgEl.style.display = 'block';
+        return;
+    }
+
+    if(cardViewerControls) cardViewerControls.style.display = 'flex';
+    if(noCollectedCardsMsgEl) noCollectedCardsMsgEl.style.display = 'none';
+
+    const card = displayedCardCollection[currentCardIndex];
+    if(displayedCardImageEl) {
+        displayedCardImageEl.src = card.url;
+        displayedCardImageEl.alt = `${card.name} Card (${card.type})`;
+    }
+    if(prevCardButton) prevCardButton.disabled = currentCardIndex === 0;
+    if(nextCardButton) nextCardButton.disabled = currentCardIndex >= displayedCardCollection.length - 1;
 }
 
 function showTcgCardsScreen() {
@@ -5218,42 +8561,96 @@ function showTcgCardsScreen() {
         switchScreen('mainMenu');
         return;
     }
-    tcgCardsGridEl.innerHTML = '';
-    const collectedTcgCards = selectedTrainerData.collectedTcgCards || [];
-    let hasTcgCards = false;
+    populateTcgSetFilter();
+    currentTcgPage = 1;
+    filterAndDisplayTcgCards();
+    switchScreen('tcgCards');
+}
 
-    if (collectedTcgCards.length > 0) {
-        hasTcgCards = true;
-        collectedTcgCards.forEach(tcgCard => {
+function populateTcgSetFilter() {
+    tcgSetFilterEl.innerHTML = '<option value="all">All Sets</option>';
+    const sets = new Set();
+    (selectedTrainerData.collectedTcgCards || []).forEach(card => {
+        if (card.tcgSet) sets.add(card.tcgSet);
+    });
+    const sortedSets = Array.from(sets).sort();
+    sortedSets.forEach(set => {
+        const option = document.createElement('option');
+        option.value = set;
+        option.textContent = set;
+        tcgSetFilterEl.appendChild(option);
+    });
+}
+
+function filterAndDisplayTcgCards() {
+    const filterValue = tcgSetFilterEl.value;
+    const allTcgCards = selectedTrainerData.collectedTcgCards || [];
+
+    if (filterValue === "all") {
+        currentFilteredTcgCards = [...allTcgCards];
+    } else {
+        currentFilteredTcgCards = allTcgCards.filter(card => card.tcgSet === filterValue);
+    }
+    currentTcgPage = 1;
+    renderTcgCardsPage();
+    updateTcgPagination();
+}
+
+function renderTcgCardsPage() {
+    tcgCardsGridEl.innerHTML = '';
+    const startIndex = (currentTcgPage - 1) * TCG_CARDS_PER_PAGE;
+    const endIndex = startIndex + TCG_CARDS_PER_PAGE;
+    const pageCards = currentFilteredTcgCards.slice(startIndex, endIndex);
+
+    if (currentFilteredTcgCards.length === 0) {
+        if (noTcgCardsMsgEl) {
+            noTcgCardsMsgEl.textContent = "No TCG cards match the filter or your collection is empty.";
+            noTcgCardsMsgEl.style.display = 'block';
+        }
+    } else {
+        if (noTcgCardsMsgEl) noTcgCardsMsgEl.style.display = 'none';
+        pageCards.forEach(tcgCard => {
             const cardItem = document.createElement('div');
-            cardItem.classList.add('collected-card-item'); // Use same class for consistent styling
+            cardItem.classList.add('collected-card-item');
+            cardItem.addEventListener('click', () => showTcgCardModal(tcgCard.spriteUrl, tcgCard.tcgCardName));
 
             const cardImg = document.createElement('img');
-            cardImg.src = tcgCard.spriteUrl; // This URL is now from PokemonTCG API
+            cardImg.src = tcgCard.spriteUrl;
             cardImg.alt = (tcgCard.tcgCardName || tcgCard.pokemonGameName) + " TCG Card";
             cardItem.appendChild(cardImg);
 
             const nameP = document.createElement('p');
-            // Display TCG card name if available, otherwise fallback to game Pokémon name
             nameP.textContent = (tcgCard.tcgCardName || tcgCard.pokemonGameName || "Unknown Card").toUpperCase();
             nameP.style.textAlign = 'center';
-            nameP.style.fontSize = '0.8em'; // Adjust as needed
+            nameP.style.fontSize = '0.8em';
             cardItem.appendChild(nameP);
 
             tcgCardsGridEl.appendChild(cardItem);
         });
     }
+    const totalPages = Math.max(1, Math.ceil(currentFilteredTcgCards.length / TCG_CARDS_PER_PAGE));
+    if (tcgPageIndicatorEl) tcgPageIndicatorEl.textContent = `Page ${currentTcgPage} / ${totalPages}`;
+}
 
-    if (noTcgCardsMsgEl) noTcgCardsMsgEl.style.display = hasTcgCards ? 'none' : 'block';
-    switchScreen('tcgCards');
+function updateTcgPagination() {
+    const totalPages = Math.max(1, Math.ceil(currentFilteredTcgCards.length / TCG_CARDS_PER_PAGE));
+    if(tcgPrevPageButton) tcgPrevPageButton.disabled = currentTcgPage <= 1;
+    if(tcgNextPageButton) tcgNextPageButton.disabled = currentTcgPage >= totalPages;
+}
+
+function showTcgCardModal(imageUrl, cardName) {
+    modalTcgCardImageEl.src = imageUrl;
+    modalTcgCardImageEl.alt = cardName + " - Enlarged";
+    screens.tcgCardModal.style.display = 'flex';
 }
 
 
 function showStarterSelectScreen() {
     startersGridEl.innerHTML = '';
-    const starterPokedexIds = [1, 4, 7, 152, 155, 158];
+    const regularStarterPool = pokemonPool.filter(p => !p.isSpecialCodePokemon);
+    const starterPokedexIds = [1, 4, 7, 152, 155, 158, 252, 258];
     starterPokedexIds.forEach(pokedexId => {
-        const pokemonData = pokemonPool.find(p => p.pokedexId === pokedexId);
+        const pokemonData = regularStarterPool.find(p => p.pokedexId === pokedexId);
         if (pokemonData) {
             const card = document.createElement('div');
             card.classList.add('starter-card');
@@ -5280,58 +8677,68 @@ function showStarterSelectScreen() {
 }
 
 
-function saveGame() { if (selectedTrainerData) { localStorage.setItem(SAVE_KEY, JSON.stringify(selectedTrainerData)); console.log("Game Saved!"); } else { console.warn("No trainer selected to save!"); } }
+function saveGame() {
+    if (selectedTrainerData) {
+        selectedTrainerData.isMenuMusicEnabled = isMenuMusicEnabled;
+        selectedTrainerData.isBattleMusicEnabled = isBattleMusicEnabled;
+        localStorage.setItem(SAVE_KEY, JSON.stringify(selectedTrainerData));
+        console.log("Game Saved!");
+        if (currentScreen === 'optionsMenu' || currentScreen === 'adminMode') {
+            alert("Game progress has been saved!");
+        }
+    } else {
+        console.warn("No trainer selected to save!");
+    }
+}
 function loadGame() {
     const sd = localStorage.getItem(SAVE_KEY);
     if (sd) {
         try {
-            selectedTrainerData = JSON.parse(sd);
-            selectedTrainerData.coins = selectedTrainerData.coins || 0;
+            const loadedData = JSON.parse(sd);
+            selectedTrainerData = loadedData;
 
-            selectedTrainerData.inventory = selectedTrainerData.inventory || {};
-            const defaultItems = { "Poke Ball": 0, "Great Ball": 0, "Evolution Stone": 0, "Perma Evolution Stone": 0, "TCG Pack": 0 };
+            selectedTrainerData.coins = selectedTrainerData.coins || 0;
+            selectedTrainerData.gold = selectedTrainerData.gold || 0; // NIEUW
+            selectedTrainerData.inventory = selectedTrainerData.inventory || { "Poke Ball": 5, "Great Ball": 0, "Ultra Ball": 0, "Master Ball": 0, "Shiny Stone": 0, "Evolution Stone": 1, "Perma Evolution Stone": 0, "TCG Pack": 0 };
+            const defaultItems = { "Poke Ball": 0, "Great Ball": 0, "Ultra Ball": 0, "Master Ball": 0, "Shiny Stone": 0, "Evolution Stone": 0, "Perma Evolution Stone": 0, "TCG Pack": 0 };
             for (const item in defaultItems) {
                 if (typeof selectedTrainerData.inventory[item] === 'undefined') {
                     selectedTrainerData.inventory[item] = defaultItems[item];
                 }
             }
-
             selectedTrainerData.team = selectedTrainerData.team || [];
             selectedTrainerData.pcBox = selectedTrainerData.pcBox || [];
             selectedTrainerData.defeatedGymLeaders = selectedTrainerData.defeatedGymLeaders || [];
             selectedTrainerData.defeatedEliteFourMembers = selectedTrainerData.defeatedEliteFourMembers || [];
-            selectedTrainerData.collectedTcgCards = selectedTrainerData.collectedTcgCards || [];
-            // Ensure new properties on TCG cards from older saves don't break things
-            selectedTrainerData.collectedTcgCards.forEach(card => {
-                card.pokemonGameName = card.pokemonGameName || card.name; // backwards compatibility if old cards only had 'name'
-                card.tcgCardName = card.tcgCardName || card.pokemonGameName;
-            });
-
+            selectedTrainerData.collectedTcgCards = (selectedTrainerData.collectedTcgCards || []).map(c => ({ ...c, tcgSet: c.tcgSet || "Unknown Set" }));
+            selectedTrainerData.collectedSpecialCards = selectedTrainerData.collectedSpecialCards || [];
+            selectedTrainerData.pokedexSeen = selectedTrainerData.pokedexSeen || {};
+            selectedTrainerData.pokedexShinySeen = selectedTrainerData.pokedexShinySeen || {};
+            selectedTrainerData.claimedFroakie = selectedTrainerData.claimedFroakie || false;
+            selectedTrainerData.claimedAshItems = selectedTrainerData.claimedAshItems || false;
             selectedTrainerData.hasChosenStarter = typeof selectedTrainerData.hasChosenStarter !== 'undefined' ? selectedTrainerData.hasChosenStarter : false;
 
-            [selectedTrainerData.team, selectedTrainerData.pcBox].forEach(list => {
-                (list || []).forEach(p => {
-                    if(p) {
-                        p.originalEvolutionData = p.originalEvolutionData || null;
-                        const shinyBaseUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon";
-                        const basePokemonData = pokemonPool.find(baseP => baseP.pokedexId === p.pokedexId) || {};
-                        p.spriteFrontUrl = p.isShiny ? `${shinyBaseUrl}/shiny/${p.pokedexId}.png` : (basePokemonData.spriteFront || `${shinyBaseUrl}/${p.pokedexId}.png`);
-                        p.spriteBackUrl = p.isShiny ? `${shinyBaseUrl}/back/shiny/${p.pokedexId}.png` : (basePokemonData.spriteBack || `${shinyBaseUrl}/back/${p.pokedexId}.png`);
+            selectedTrainerData.currentLeagueOpponentIndex = selectedTrainerData.currentLeagueOpponentIndex || 0;
+            selectedTrainerData.leagueBattlesWon = selectedTrainerData.leagueBattlesWon || 0;
+            selectedTrainerData.defeatedPokemonLeague = selectedTrainerData.defeatedPokemonLeague || false;
+            selectedTrainerData.teamRocketDefeatedCount = selectedTrainerData.teamRocketDefeatedCount || 0;
+            selectedTrainerData.defeatedAllTeamRocket = selectedTrainerData.defeatedAllTeamRocket || false;
 
-                        p.moves.forEach(m => {
-                            if (typeof m.currentPp === 'undefined') m.currentPp = m.maxPp;
-                        });
-                        p.name = p.name.toUpperCase();
-                    }
-                });
-            });
+            isMenuMusicEnabled = typeof selectedTrainerData.isMenuMusicEnabled === 'boolean' ? selectedTrainerData.isMenuMusicEnabled : true;
+            isBattleMusicEnabled = typeof selectedTrainerData.isBattleMusicEnabled === 'boolean' ? selectedTrainerData.isBattleMusicEnabled : true;
 
+            btnToggleMenuMusicOpt.textContent = `MENU MUSIC: ${isMenuMusicEnabled ? 'ON' : 'OFF'}`;
+            btnToggleBattleMusicOpt.textContent = `BATTLE MUSIC: ${isBattleMusicEnabled ? 'ON' : 'OFF'}`;
+
+
+            selectedTrainerData.team = restoreFullPokemonList(selectedTrainerData.team, false);
+            selectedTrainerData.pcBox = restoreFullPokemonList(selectedTrainerData.pcBox, false);
 
             if (chosenTrainerImageMainMenu && selectedTrainerData.imageUrl) {
                 chosenTrainerImageMainMenu.src = selectedTrainerData.imageUrl;
                 chosenTrainerImageMainMenu.alt = selectedTrainerData.name;
             }
-            updateCoinDisplay();
+            updateCurrencyDisplays();
             const dm = localStorage.getItem('blazingThunder_darkMode');
             if (dm === 'true') gameBody.classList.add('dark-mode');
             console.log("Game Loaded");
@@ -5339,23 +8746,210 @@ function loadGame() {
         } catch (e) {
             console.error('Load error:', e);
             localStorage.removeItem(SAVE_KEY);
+            selectedTrainerData = null;
             return false;
         }
     }
+    selectedTrainerData = null;
     return false;
 }
-function resetGame() {
+function performResetGame() {
     localStorage.removeItem(SAVE_KEY);
     localStorage.removeItem('blazingThunder_darkMode');
+    localStorage.removeItem('blazingThunder_menuMusicEnabled');
+    localStorage.removeItem('blazingThunder_battleMusicEnabled');
     selectedTrainerData = null;
     tempSelectedStarter = null;
     isNewGameSetup = false;
     gameBody.classList.remove('dark-mode');
     if(playerCoinsDisplayMainMenuEl) playerCoinsDisplayMainMenuEl.textContent = "Coins: 0";
+    if(playerGoldDisplayMainMenuEl) playerGoldDisplayMainMenuEl.textContent = "Gold: 0"; // Reset Gold
     if(marketCoinDisplayEl) marketCoinDisplayEl.textContent = "Coins: 0";
+    if(marketGoldDisplayEl) marketGoldDisplayEl.textContent = "Gold: 0"; // Reset Gold
+    generatedPasswordArea.value = "";
+    inputPasswordArea.value = "";
+    currentLeagueOrder = [];
+    battleState.currentLeagueOpponentIndex = 0;
+    battleState.leagueBattlesWon = 0;
+    battleState.currentTeamRocketGruntIndex = 0;
+    isMenuMusicEnabled = true;
+    isBattleMusicEnabled = true;
+    btnToggleMenuMusicOpt.textContent = "MENU MUSIC: ON";
+    btnToggleBattleMusicOpt.textContent = "BATTLE MUSIC: ON";
+    stopIntroMusic();
+    stopBattleMusic(true);
     alert("Game Reset! Select a new trainer.");
+    screens.resetConfirmDialog.style.display = 'none';
     switchScreen('intro');
 }
+
+// --- Admin Mode Functies ---
+function showAdminModeScreen() {
+    adminPasswordInput.value = '';
+    adminMessageEl.textContent = '';
+    switchScreen('adminMode');
+}
+
+function submitAdminPassword() {
+    if (!selectedTrainerData) {
+        adminMessageEl.textContent = "No trainer data loaded.";
+        adminMessageEl.style.color = "red";
+        return;
+    }
+    const inputCode = adminPasswordInput.value;
+    adminPasswordInput.value = '';
+
+    if (inputCode === ADMIN_PASSWORD) {
+        selectedTrainerData.coins = (selectedTrainerData.coins || 0) + 1000;
+        selectedTrainerData.gold = (selectedTrainerData.gold || 0) + 100; // Geef ook wat gold
+        selectedTrainerData.inventory["Ultra Ball"] = (selectedTrainerData.inventory["Ultra Ball"] || 0) + 100;
+        selectedTrainerData.inventory["Master Ball"] = (selectedTrainerData.inventory["Master Ball"] || 0) + 5;
+        selectedTrainerData.inventory["Shiny Stone"] = (selectedTrainerData.inventory["Shiny Stone"] || 0) + 2; // Geef shiny stones
+        updateCurrencyDisplays();
+        adminMessageEl.textContent = "Admin rewards granted! 1000 Coins, 100 Gold, 100 Ultra Balls, 5 Master Balls, 2 Shiny Stones added.";
+        adminMessageEl.style.color = "lime";
+    } else if (inputCode === ADMIN_CODE_MUDKIP) {
+        const mudkipData = pokemonPool.find(p => p.pokedexId === 258);
+        if (mudkipData) {
+            const shinyMudkip = createPokemonFromData({ ...mudkipData, isShiny: true }, false, true);
+            if (selectedTrainerData.team.length < MAX_TEAM_SIZE) {
+                selectedTrainerData.team.push(shinyMudkip);
+                adminMessageEl.textContent = "Shiny Mudkip added to your team!";
+            } else if (selectedTrainerData.pcBox.length < MAX_PC_BOX_SIZE) {
+                selectedTrainerData.pcBox.push(shinyMudkip);
+                adminMessageEl.textContent = "Shiny Mudkip sent to your PC Box!";
+            } else {
+                adminMessageEl.textContent = "Team and PC Box are full. Cannot add Shiny Mudkip.";
+                adminMessageEl.style.color = "orange";
+                saveGame();
+                return;
+            }
+            adminMessageEl.style.color = "lime";
+        } else {
+            adminMessageEl.textContent = "Mudkip data not found in game pool.";
+            adminMessageEl.style.color = "red";
+        }
+    } else if (inputCode === ADMIN_CODE_FROAKIE) {
+        if (selectedTrainerData.claimedFroakie) {
+            adminMessageEl.textContent = "You have already claimed the special Froakie.";
+            adminMessageEl.style.color = "orange";
+        } else {
+            const froakieData = pokemonPool.find(p => p.pokedexId === 656 && p.isSpecialCodePokemon);
+            if (froakieData) {
+                const shinyFroakie = createPokemonFromData({ ...froakieData, isShiny: true }, false, true);
+                if (selectedTrainerData.team.length < MAX_TEAM_SIZE) {
+                    selectedTrainerData.team.push(shinyFroakie);
+                    adminMessageEl.textContent = "Special Shiny Froakie added to your team!";
+                } else if (selectedTrainerData.pcBox.length < MAX_PC_BOX_SIZE) {
+                    selectedTrainerData.pcBox.push(shinyFroakie);
+                    adminMessageEl.textContent = "Special Shiny Froakie sent to your PC Box!";
+                } else {
+                    adminMessageEl.textContent = "Team and PC Box are full. Cannot add Special Shiny Froakie.";
+                    adminMessageEl.style.color = "orange";
+                    saveGame();
+                    return;
+                }
+                selectedTrainerData.claimedFroakie = true;
+                adminMessageEl.style.color = "lime";
+            } else {
+                adminMessageEl.textContent = "Special Froakie data not found.";
+                adminMessageEl.style.color = "red";
+            }
+        }
+    } else if (inputCode === ADMIN_CODE_ASHITEMS) {
+        if (selectedTrainerData.claimedAshItems) {
+            adminMessageEl.textContent = "You have already claimed Ash's items.";
+            adminMessageEl.style.color = "orange";
+        } else {
+            selectedTrainerData.inventory["Evolution Stone"] = (selectedTrainerData.inventory["Evolution Stone"] || 0) + 2;
+            selectedTrainerData.inventory["Ultra Ball"] = (selectedTrainerData.inventory["Ultra Ball"] || 0) + 10;
+            selectedTrainerData.inventory["Poke Ball"] = (selectedTrainerData.inventory["Poke Ball"] || 0) + 20;
+            selectedTrainerData.claimedAshItems = true;
+            adminMessageEl.textContent = "Ash's items claimed: 2 Evo Stones, 10 Ultra Balls, 20 Poke Balls!";
+            adminMessageEl.style.color = "lime";
+        }
+    }
+     else {
+        adminMessageEl.textContent = "Incorrect password or code.";
+        adminMessageEl.style.color = "red";
+    }
+    saveGame();
+}
+
+
+// --- Use Item Screen (Shiny Stone) ---
+function showUseItemScreen() {
+    if (!selectedTrainerData || !currentItemToUse) {
+        screens.useItem.style.display = 'none';
+        return;
+    }
+    useItemTitleEl.textContent = `Use ${currentItemToUse} on:`;
+    useItemPokemonGridEl.innerHTML = '';
+
+    selectedTrainerData.team.forEach((pokemon, index) => {
+        if (pokemon) {
+            const pCard = document.createElement('div');
+            pCard.classList.add('team-pokemon-card'); // Reuse existing style
+            pCard.style.cursor = 'pointer'; // Make it clickable
+
+            const pSprite = document.createElement('img');
+            pSprite.classList.add('pokemon-list-sprite');
+            pSprite.src = pokemon.spriteFrontUrl;
+            pSprite.alt = pokemon.name.toUpperCase();
+            if (pokemon.isShiny) pSprite.classList.add('shiny-sprite-indicator');
+
+            const pDetails = document.createElement('div');
+            pDetails.classList.add('pokemon-details');
+            pDetails.innerHTML = `<span class="pokemon-name">${pokemon.name.toUpperCase()}${pokemon.isShiny ? ' (Shiny)' : ''}</span>`;
+
+            pCard.appendChild(pSprite);
+            pCard.appendChild(pDetails);
+
+            if (currentItemToUse === "Shiny Stone" && pokemon.isShiny) {
+                pCard.style.opacity = 0.5;
+                pCard.title = "Already Shiny!";
+            } else {
+                pCard.addEventListener('click', () => applyItemToPokemon(index));
+            }
+            useItemPokemonGridEl.appendChild(pCard);
+        }
+    });
+    screens.useItem.style.display = 'flex';
+}
+
+function applyItemToPokemon(pokemonIndex) {
+    if (!selectedTrainerData || !currentItemToUse || !selectedTrainerData.team[pokemonIndex]) return;
+
+    const pokemon = selectedTrainerData.team[pokemonIndex];
+
+    if (currentItemToUse === "Shiny Stone") {
+        if (pokemon.isShiny) {
+            alert(`${pokemon.name.toUpperCase()} is already shiny!`);
+            return;
+        }
+        if (selectedTrainerData.inventory["Shiny Stone"] > 0) {
+            selectedTrainerData.inventory["Shiny Stone"]--;
+            pokemon.isShiny = true;
+            // Update sprite URLs
+            const shinyBaseUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon";
+            const basePokemonData = pokemonPool.find(p => p.pokedexId === pokemon.pokedexId) || {};
+            pokemon.spriteFrontUrl = `${shinyBaseUrl}/shiny/${pokemon.pokedexId}.png`;
+            pokemon.spriteBackUrl = `${shinyBaseUrl}/back/shiny/${pokemon.pokedexId}.png`;
+
+            alert(`${pokemon.name.toUpperCase()} is now Shiny!`);
+            markAsSeen(pokemon.pokedexId, true); // Mark new shiny form as seen
+            saveGame();
+            showInventoryScreen(); // Refresh inventory
+        } else {
+            alert("You don't have any Shiny Stones!");
+        }
+    }
+    screens.useItem.style.display = 'none';
+    currentItemToUse = null;
+}
+
+
+
 
 document.addEventListener('DOMContentLoaded', () => {
     const cyEl = document.getElementById('currentYear'); if (cyEl) cyEl.textContent = new Date().getFullYear();
@@ -5369,13 +8963,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if(confirmYesButton) confirmYesButton.addEventListener('click', () => {
             if (selectedTrainerData) {
                 selectedTrainerData.coins = 0;
-                selectedTrainerData.inventory = { "Poke Ball": 5, "Great Ball": 0, "Evolution Stone": 1, "Perma Evolution Stone": 0, "TCG Pack": 0 };
+                selectedTrainerData.gold = 0; // NIEUW: Reset Gold
+                selectedTrainerData.inventory = { "Poke Ball": 5, "Great Ball": 0, "Ultra Ball": 0, "Master Ball": 0, "Shiny Stone": 0, "Evolution Stone": 1, "Perma Evolution Stone": 0, "TCG Pack": 0 };
                 selectedTrainerData.team = [];
                 selectedTrainerData.pcBox = [];
                 selectedTrainerData.defeatedGymLeaders = [];
                 selectedTrainerData.defeatedEliteFourMembers = [];
                 selectedTrainerData.collectedTcgCards = [];
+                selectedTrainerData.collectedSpecialCards = [];
+                selectedTrainerData.pokedexSeen = {};
+                selectedTrainerData.pokedexShinySeen = {};
+                selectedTrainerData.claimedFroakie = false;
+                selectedTrainerData.claimedAshItems = false;
                 selectedTrainerData.hasChosenStarter = false;
+                selectedTrainerData.currentLeagueOpponentIndex = 0;
+                selectedTrainerData.leagueBattlesWon = 0;
+                selectedTrainerData.defeatedPokemonLeague = false;
+                selectedTrainerData.teamRocketDefeatedCount = 0;
+                selectedTrainerData.defeatedAllTeamRocket = false;
+                currentLeagueOrder = [];
 
                 if (isNewGameSetup) {
                     showStarterSelectScreen();
@@ -5384,7 +8990,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     switchScreen('mainMenu');
                 }
             } else switchScreen('characterSelect');
-            screens.confirmDialog.style.display = 'none'; // Close dialog
+            screens.confirmDialog.style.display = 'none';
         });
         if(confirmNoButton) confirmNoButton.addEventListener('click', () => { selectedTrainerData = null; screens.confirmDialog.style.display = 'none'; switchScreen('characterSelect'); });
 
@@ -5399,7 +9005,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     chosenTrainerImageMainMenu.src = selectedTrainerData.imageUrl;
                     chosenTrainerImageMainMenu.alt = selectedTrainerData.name;
                 }
-                updateCoinDisplay();
+                updateCurrencyDisplays();
                 saveGame();
                 screens.confirmStarterDialog.style.display = 'none';
                 switchScreen('mainMenu');
@@ -5412,10 +9018,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
         if(btnPlay) btnPlay.addEventListener('click', () => switchScreen('playMenu'));
-        if(btnQuickBattlePlay) btnQuickBattlePlay.addEventListener('click', () => prepareBattle(startQuickBattle, false));
-        if(btnWildModePlay) btnWildModePlay.addEventListener('click', () => prepareBattle(startWildBattleActual, false));
+        if(btnQuickBattlePlay) btnQuickBattlePlay.addEventListener('click', startQuickBattle);
+        if(btnWildModePlay) btnWildModePlay.addEventListener('click', () => prepareBattle(startWildBattleActual, false, false, false, false));
         if(btnGymBattlePlay) btnGymBattlePlay.addEventListener('click', showGymLeaderSelectScreen);
         if(btnEliteBattlesPlay) btnEliteBattlesPlay.addEventListener('click', showEliteFourSelectScreen);
+        if(btnPokemonLeaguePlay) btnPokemonLeaguePlay.addEventListener('click', () => prepareBattle(showPokemonLeagueScreen, false, true, false, false));
+        if(btnTeamRocketPlay) btnTeamRocketPlay.addEventListener('click', () => showTeamRocketScreen());
+        if(btnRaidBattlePlay) btnRaidBattlePlay.addEventListener('click', () => prepareBattle(startRaidBattleActual, false, false, false, true)); // NIEUW
         if(btnBackToMainFromPlay) btnBackToMainFromPlay.addEventListener('click', () => switchScreen('mainMenu'));
 
         if(btnOptions) btnOptions.addEventListener('click', () => switchScreen('optionsMenu'));
@@ -5423,20 +9032,46 @@ document.addEventListener('DOMContentLoaded', () => {
         if(tabTcgCards) tabTcgCards.addEventListener('click', showTcgCardsScreen);
         if(tabTeam) tabTeam.addEventListener('click', showTeamScreen);
         if(tabMyPc) tabMyPc.addEventListener('click', showPcBoxScreen);
+        if(tabPokedex) tabPokedex.addEventListener('click', showPokedexScreen);
+        if(tabPassword) tabPassword.addEventListener('click', () => {
+            generatedPasswordArea.value = "";
+            inputPasswordArea.value = "";
+            switchScreen('password');
+        });
         if(tabMarket) tabMarket.addEventListener('click', showMarketScreen);
         if(tabInventory) tabInventory.addEventListener('click', showInventoryScreen);
-        if(marketItemsGridEl) { marketItemsGridEl.addEventListener('click', (e) => { if (e.target.classList.contains('buy-button')) { const itemName = e.target.dataset.itemName; const price = e.target.dataset.price; buyItem(itemName, price); } }); }
+        if(marketItemsGridEl) { marketItemsGridEl.addEventListener('click', (e) => { const buyButton = e.target.closest('.buy-button'); if (buyButton) { const itemName = buyButton.dataset.itemName; const price = buyButton.dataset.price; const currency = buyButton.dataset.currency; buyItem(itemName, price, currency); } }); }
         if(btnBackToMainFromMarket) btnBackToMainFromMarket.addEventListener('click', () => switchScreen('mainMenu'));
         if(btnBackToMainFromInventory) btnBackToMainFromInventory.addEventListener('click', () => switchScreen('mainMenu'));
         if(btnBackToMainFromTeam) btnBackToMainFromTeam.addEventListener('click', () => switchScreen('mainMenu'));
         if(btnBackToMainFromPcBox) btnBackToMainFromPcBox.addEventListener('click', () => switchScreen('mainMenu'));
+        if(btnBackToMainFromPokedex) btnBackToMainFromPokedex.addEventListener('click', () => switchScreen('mainMenu'));
         if(btnBackToMainFromTcgCards) btnBackToMainFromTcgCards.addEventListener('click', () => switchScreen('mainMenu'));
         if(btnSaveGameOpt) btnSaveGameOpt.addEventListener('click', saveGame);
-        if(btnResetGameOpt) btnResetGameOpt.addEventListener('click', () => {screens.resetConfirmDialog.style.display = 'flex'});
+
+        if(btnResetGameOpt) btnResetGameOpt.addEventListener('click', () => {
+            screens.resetConfirmDialog.style.display = 'flex';
+        });
+        if(resetConfirmYesButton) resetConfirmYesButton.addEventListener('click', () => {
+            performResetGame();
+        });
+        if(btnToggleMenuMusicOpt) btnToggleMenuMusicOpt.addEventListener('click', toggleMenuMusic);
+        if(btnToggleBattleMusicOpt) btnToggleBattleMusicOpt.addEventListener('click', toggleBattleMusic);
+        if(btnAdminModeOpt) btnAdminModeOpt.addEventListener('click', showAdminModeScreen);
+
+
         if(btnDarkModeOpt) btnDarkModeOpt.addEventListener('click', () => { gameBody.classList.toggle('dark-mode'); localStorage.setItem('blazingThunder_darkMode', gameBody.classList.contains('dark-mode')); });
         if(btnBackToMainOpts) btnBackToMainOpts.addEventListener('click', () => switchScreen('mainMenu'));
-        if(resetConfirmYesButton) resetConfirmYesButton.addEventListener('click', () => {screens.resetConfirmDialog.style.display = 'none'; resetGame();});
         if(resetConfirmNoButton) resetConfirmNoButton.addEventListener('click', () => {screens.resetConfirmDialog.style.display = 'none'; switchScreen('optionsMenu');});
+
+        if(btnSubmitAdminPassword) btnSubmitAdminPassword.addEventListener('click', submitAdminPassword);
+        if(btnBackToOptionsFromAdmin) btnBackToOptionsFromAdmin.addEventListener('click', () => switchScreen('optionsMenu'));
+
+
+        if(btnGeneratePassword) btnGeneratePassword.addEventListener('click', generatePassword);
+        if(btnLoadFromPassword) btnLoadFromPassword.addEventListener('click', loadFromPassword);
+        if(btnBackToMainFromPassword) btnBackToMainFromPassword.addEventListener('click', () => switchScreen('mainMenu'));
+
 
         if(btnBackToPlayMenuFromGymSelect) btnBackToPlayMenuFromGymSelect.addEventListener('click', () => switchScreen('playMenu'));
         if(btnBackToGymSelectFromDetail) btnBackToGymSelectFromDetail.addEventListener('click', showGymLeaderSelectScreen);
@@ -5444,7 +9079,68 @@ document.addEventListener('DOMContentLoaded', () => {
         if(btnBackToPlayMenuFromEliteFourSelect) btnBackToPlayMenuFromEliteFourSelect.addEventListener('click', () => switchScreen('playMenu'));
         if(btnBackToEliteFourSelectFromDetail) btnBackToEliteFourSelectFromDetail.addEventListener('click', showEliteFourSelectScreen);
 
+        if(btnStartLeagueBattle) btnStartLeagueBattle.addEventListener('click', () => prepareBattle(startNextLeagueBattle, false, true, false, false));
+        if(btnBackToPlayMenuFromLeague) btnBackToPlayMenuFromLeague.addEventListener('click', () => switchScreen('mainMenu'));
+
+        if(btnStartTeamRocketBattle) btnStartTeamRocketBattle.addEventListener('click', () => prepareTeamRocketBattle());
+        if(btnBackToPlayMenuFromTeamRocket) btnBackToPlayMenuFromTeamRocket.addEventListener('click', () => switchScreen('mainMenu'));
+
+        if(pokedexSearchInputEl) pokedexSearchInputEl.addEventListener('input', filterPokedex);
+
+
+        if(prevCardButton) prevCardButton.addEventListener('click', () => {
+            if (currentCardIndex > 0) {
+                currentCardIndex--;
+                updateDisplayedCard();
+            }
+        });
+        if(nextCardButton) nextCardButton.addEventListener('click', () => {
+            if (currentCardIndex < displayedCardCollection.length - 1) {
+                currentCardIndex++;
+                updateDisplayedCard();
+            }
+        });
         if(btnBackToMainFromMyCards) btnBackToMainFromMyCards.addEventListener('click', () => switchScreen('mainMenu'));
+
+
+        if(tcgSetFilterEl) tcgSetFilterEl.addEventListener('change', filterAndDisplayTcgCards);
+        if(tcgPrevPageButton) tcgPrevPageButton.addEventListener('click', () => {
+            if (currentTcgPage > 1) {
+                currentTcgPage--;
+                renderTcgCardsPage();
+                updateTcgPagination();
+            }
+        });
+        if(tcgNextPageButton) tcgNextPageButton.addEventListener('click', () => {
+            const totalPages = Math.max(1, Math.ceil(currentFilteredTcgCards.length / TCG_CARDS_PER_PAGE));
+            if (currentTcgPage < totalPages) {
+                currentTcgPage++;
+                renderTcgCardsPage();
+                updateTcgPagination();
+            }
+        });
+        if(closeTcgCardModalButton) closeTcgCardModalButton.addEventListener('click', () => {
+            screens.tcgCardModal.style.display = 'none';
+        });
+
+        if(prevRevealedTcgCardButton) {
+            prevRevealedTcgCardButton.addEventListener('click', () => {
+                if (currentRevealedTcgCardIndex > 0) {
+                    currentRevealedTcgCardIndex--;
+                    displayRevealedTcgCard();
+                }
+            });
+        }
+        if(nextRevealedTcgCardButton) {
+            nextRevealedTcgCardButton.addEventListener('click', () => {
+                if (currentRevealedTcgCardIndex < revealedTcgCards.length - 1) {
+                    currentRevealedTcgCardIndex++;
+                    displayRevealedTcgCard();
+                }
+            });
+        }
+        if(closeTcgRevealButton) closeTcgRevealButton.addEventListener('click', () => { screens.tcgPackOpeningOverlay.style.display = 'none'; });
+
 
         if(actionMenuEl) actionMenuEl.addEventListener('click', (e) => {
             if (!battleState.playerTurn || battleState.isProcessingMessage) return;
@@ -5458,21 +9154,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     case 'pokemon': showSwitchScreen(false); break;
                     case 'run':
                         if (battleState.isWildBattle) {
+                            stopBattleMusic(true);
                             typeMessage("Got away safely!", () => {
                                 finalizeBattleState();
-                                battleState = { ...battleState, playerTeam: [], opponentTeam:[], isWildBattle: false, isGymBattle: false, isEliteFourBattle: false, currentGymLeaderKey: null, currentEliteFourMemberKey: null, switchingAfterFaint: false };
+                                battleState.isWildBattle = false;
+                                battleState.playerTeam = []; battleState.opponentTeam = [];
+                                screens.battle.style.backgroundImage = WILD_BATTLE_BACKGROUND;
                                 switchScreen('mainMenu');
                             });
-                        } else if (battleState.isGymBattle || battleState.isEliteFourBattle) {
-                             typeMessage("You can't run from a Gym or Elite Four Battle!", playerActionPhase);
-                        } else { // Quick Battle
+                        } else if (battleState.isGymBattle || battleState.isEliteFourBattle || battleState.isPokemonLeagueBattle || battleState.isTeamRocketBattle || battleState.isRaidBattle) {
+                             typeMessage("You can't run from this important battle!", playerActionPhase);
+                        } else {
+                            stopBattleMusic(true);
                             typeMessage("You chose to forfeit the Quick Battle.", () => {
-                                finalizeBattleState(); // Update HP etc.
-                                // Optionally, give small penalty or just end
-                                selectedTrainerData.coins = Math.max(0, (selectedTrainerData.coins || 0) - 2); // Small coin penalty for forfeiting
-                                updateCoinDisplay();
+                                finalizeBattleState();
+                                selectedTrainerData.coins = Math.max(0, (selectedTrainerData.coins || 0) - 2);
+                                updateCurrencyDisplays();
                                 saveGame();
-                                battleState = { ...battleState, playerTeam: [], opponentTeam:[], isWildBattle: false, isGymBattle: false, isEliteFourBattle: false, currentGymLeaderKey: null, currentEliteFourMemberKey: null, switchingAfterFaint: false };
+                                battleState.isWildBattle = false; battleState.isGymBattle = false; battleState.isEliteFourBattle = false; battleState.isPokemonLeagueBattle = false; battleState.isTeamRocketBattle = false; battleState.isRaidBattle = false;
+                                battleState.playerTeam = []; battleState.opponentTeam = [];
+                                screens.battle.style.backgroundImage = WILD_BATTLE_BACKGROUND;
                                 switchScreen('mainMenu');
                             });
                         }
@@ -5497,7 +9198,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (itemName === "Evolution Stone" || itemName === "Perma Evolution Stone") {
                     useEvolutionItem(itemName);
-                } else if (itemName === "Poke Ball" || itemName === "Great Ball") {
+                } else if (itemName === "Poke Ball" || itemName === "Great Ball" || itemName === "Ultra Ball" || itemName === "Master Ball") {
                     if (battleState.isWildBattle) {
                         throwPokeball(itemName);
                     } else {
@@ -5528,11 +9229,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if(switchCancelButton) switchCancelButton.addEventListener('click', () => { if (currentScreen === 'switchPokemon' && !battleState.switchingAfterFaint) { switchScreen('battle'); playerActionPhase(); }});
 
-        if(closeTcgRevealButton) closeTcgRevealButton.addEventListener('click', () => {
-            screens.tcgPackOpeningOverlay.style.display = 'none';
+
+        if(pcPrevButton) {
+            pcPrevButton.addEventListener('click', () => {
+                if (currentPcPage > 1) {
+                    currentPcPage--;
+                    renderCurrentPcPage();
+                    updatePcPaginationButtons();
+                }
+            });
+        }
+        if(pcNextButton) {
+            pcNextButton.addEventListener('click', () => {
+                const totalPages = Math.max(1, Math.ceil((selectedTrainerData.pcBox || []).length / POKEMON_PER_PC_PAGE));
+                if (currentPcPage < totalPages) {
+                    currentPcPage++;
+                    renderCurrentPcPage();
+                    updatePcPaginationButtons();
+                }
+            });
+        }
+        if(teamSelectCancelButton) {
+            teamSelectCancelButton.addEventListener('click', () => {
+                battleState.pendingBattleStartFunction = null;
+                switchScreen('playMenu');
+            });
+        }
+        if(cancelUseItemButton) cancelUseItemButton.addEventListener('click', () => { // NIEUW
+            screens.useItem.style.display = 'none';
+            currentItemToUse = null;
         });
+
     }
+
     setupEvtLstnrs();
+    const menuMusicSaved = localStorage.getItem('blazingThunder_menuMusicEnabled');
+    const battleMusicSaved = localStorage.getItem('blazingThunder_battleMusicEnabled');
+
+    isMenuMusicEnabled = menuMusicSaved !== null ? JSON.parse(menuMusicSaved) : true;
+    isBattleMusicEnabled = battleMusicSaved !== null ? JSON.parse(battleMusicSaved) : true;
+
+    btnToggleMenuMusicOpt.textContent = `MENU MUSIC: ${isMenuMusicEnabled ? 'ON' : 'OFF'}`;
+    btnToggleBattleMusicOpt.textContent = `BATTLE MUSIC: ${isBattleMusicEnabled ? 'ON' : 'OFF'}`;
+
+
     if (loadGame()) {
         if (selectedTrainerData.hasChosenStarter) {
             switchScreen('mainMenu');
@@ -5545,14 +9285,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     } else {
-        isNewGameSetup = true; // No save file, start new game setup
-         switchScreen('intro'); // Start from intro if no game loaded
+        isNewGameSetup = true;
+         switchScreen('intro');
     }
-    updateCoinDisplay(); // Ensure coins are updated on initial load/reset
-    // Default to intro screen if no specific screen is set and it's not a new game setup directing elsewhere
+    updateCurrencyDisplays();
     if (screens[currentScreen] && screens[currentScreen].style.display === 'none' && currentScreen === 'intro' && !isNewGameSetup) {
         screens.intro.style.display = 'flex';
-    } else if (currentScreen === 'intro' && !isNewGameSetup && !loadGame()) { // Ensure intro screen if everything else fails
+    } else if (currentScreen === 'intro' && !isNewGameSetup && !localStorage.getItem(SAVE_KEY)) {
         screens.intro.style.display = 'flex';
     }
 });
